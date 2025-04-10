@@ -64,7 +64,7 @@ export class ToggleSwitch extends LitElement {
 
   override render() {
     return html`
-      <label class=${this.on ? 'subscribe' : ''}>
+      <label class=${this.on ? 'on' : ''}>
         <input
           type="checkbox"
           class="switch"
