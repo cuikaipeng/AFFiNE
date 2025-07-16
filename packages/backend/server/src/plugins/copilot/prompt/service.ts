@@ -53,8 +53,11 @@ export class PromptService implements OnApplicationBootstrap {
    * @returns prompt messages
    */
   async get(name: string): Promise<ChatPrompt | null> {
-    const cached = this.cache.get(name);
-    if (cached) return cached;
+    // skip cache in dev mode to ensure the latest prompt is always fetched
+    if (!env.dev) {
+      const cached = this.cache.get(name);
+      if (cached) return cached;
+    }
 
     const prompt = await this.db.aiPrompt.findUnique({
       where: {
@@ -64,6 +67,7 @@ export class PromptService implements OnApplicationBootstrap {
         name: true,
         action: true,
         model: true,
+        optionalModels: true,
         config: true,
         messages: {
           select: {

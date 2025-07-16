@@ -1,4 +1,9 @@
 import { Button, Divider, useLitPortalFactory } from '@affine/component';
+import { getViewManager } from '@affine/core/blocksuite/manager/view';
+import {
+  patchReferenceRenderer,
+  type ReferenceReactRenderer,
+} from '@affine/core/blocksuite/view-extensions/editor-view/reference-renderer';
 import { useGuard } from '@affine/core/components/guard';
 import { useEnableAI } from '@affine/core/components/hooks/affine/use-enable-ai';
 import { DocService } from '@affine/core/modules/doc';
@@ -10,10 +15,7 @@ import {
 import { toDocSearchParams } from '@affine/core/modules/navigation/utils';
 import { GlobalSessionStateService } from '@affine/core/modules/storage';
 import { WorkbenchLink } from '@affine/core/modules/workbench';
-import {
-  getAFFiNEWorkspaceSchema,
-  WorkspaceService,
-} from '@affine/core/modules/workspace';
+import { WorkspaceService } from '@affine/core/modules/workspace';
 import { useI18n } from '@affine/i18n';
 import track from '@affine/track';
 import type {
@@ -41,11 +43,6 @@ import {
   AffineSharedPageReference,
 } from '../../components/affine/reference-link';
 import { LitTextRenderer } from '../ai/components/text-renderer';
-import { enableEditorExtension } from '../extensions/entry/enable-editor';
-import {
-  patchReferenceRenderer,
-  type ReferenceReactRenderer,
-} from '../extensions/reference-renderer';
 import * as styles from './bi-directional-link-panel.css';
 
 const PREFIX = 'bi-directional-link-panel-collapse:';
@@ -163,9 +160,18 @@ const usePreviewExtensions = () => {
   const enableAI = useEnableAI();
 
   const extensions = useMemo(() => {
-    const specs = enableEditorExtension(framework, 'page', enableAI);
-    specs.extend([patchReferenceRenderer(reactToLit, referenceRenderer)]);
-    return specs.value;
+    const manager = getViewManager()
+      .config.init()
+      .foundation(framework)
+      .ai(enableAI, framework)
+      .theme(framework)
+      .database(framework)
+      .linkedDoc(framework)
+      .paragraph(enableAI)
+      .linkPreview(framework)
+      .codeBlockHtmlPreview(framework).value;
+    const specs = manager.get('preview-page');
+    return [...specs, patchReferenceRenderer(reactToLit, referenceRenderer)];
   }, [reactToLit, referenceRenderer, framework, enableAI]);
 
   return [extensions, portals] as const;
@@ -329,7 +335,6 @@ export const LinkPreview = ({
               <LitTextRenderer
                 className={styles.linkPreviewRenderer}
                 answer={link.markdownPreview}
-                schema={getAFFiNEWorkspaceSchema()}
                 options={textRendererOptions}
               />
             )}

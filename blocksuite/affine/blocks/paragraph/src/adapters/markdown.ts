@@ -2,18 +2,24 @@ import { ParagraphBlockSchema } from '@blocksuite/affine-model';
 import {
   BlockMarkdownAdapterExtension,
   type BlockMarkdownAdapterMatcher,
+  IN_PARAGRAPH_NODE_CONTEXT_KEY,
+  isCalloutNode,
   type MarkdownAST,
 } from '@blocksuite/affine-shared/adapters';
 import type { DeltaInsert } from '@blocksuite/store';
 import { nanoid } from '@blocksuite/store';
 import type { Heading } from 'mdast';
 
-const PARAGRAPH_MDAST_TYPE = new Set([
-  'paragraph',
-  'html',
-  'heading',
-  'blockquote',
-]);
+/**
+ * Extend the HeadingData type to include the collapsed property
+ */
+declare module 'mdast' {
+  interface HeadingData {
+    collapsed?: boolean;
+  }
+}
+
+const PARAGRAPH_MDAST_TYPE = new Set(['paragraph', 'heading', 'blockquote']);
 
 const isParagraphMDASTType = (node: MarkdownAST) =>
   PARAGRAPH_MDAST_TYPE.has(node.type);
@@ -21,38 +27,14 @@ const isParagraphMDASTType = (node: MarkdownAST) =>
 export const paragraphBlockMarkdownAdapterMatcher: BlockMarkdownAdapterMatcher =
   {
     flavour: ParagraphBlockSchema.model.flavour,
-    toMatch: o => isParagraphMDASTType(o.node),
+    toMatch: o => isParagraphMDASTType(o.node) && !isCalloutNode(o.node),
     fromMatch: o => o.node.flavour === ParagraphBlockSchema.model.flavour,
     toBlockSnapshot: {
       enter: (o, context) => {
         const { walkerContext, deltaConverter } = context;
         switch (o.node.type) {
-          case 'html': {
-            walkerContext
-              .openNode(
-                {
-                  type: 'block',
-                  id: nanoid(),
-                  flavour: 'affine:paragraph',
-                  props: {
-                    type: 'text',
-                    text: {
-                      '$blocksuite:internal:text$': true,
-                      delta: [
-                        {
-                          insert: o.node.value,
-                        },
-                      ],
-                    },
-                  },
-                  children: [],
-                },
-                'children'
-              )
-              .closeNode();
-            break;
-          }
           case 'paragraph': {
+            walkerContext.setGlobalContext(IN_PARAGRAPH_NODE_CONTEXT_KEY, true);
             walkerContext
               .openNode(
                 {
@@ -71,10 +53,10 @@ export const paragraphBlockMarkdownAdapterMatcher: BlockMarkdownAdapterMatcher =
                 'children'
               )
               .closeNode();
-            walkerContext.skipAllChildren();
             break;
           }
           case 'heading': {
+            const isCollapsed = !!o.node.data?.collapsed;
             walkerContext
               .openNode(
                 {
@@ -83,6 +65,7 @@ export const paragraphBlockMarkdownAdapterMatcher: BlockMarkdownAdapterMatcher =
                   flavour: 'affine:paragraph',
                   props: {
                     type: `h${o.node.depth}`,
+                    collapsed: isCollapsed,
                     text: {
                       '$blocksuite:internal:text$': true,
                       delta: deltaConverter.astToDelta(o.node),
@@ -96,6 +79,10 @@ export const paragraphBlockMarkdownAdapterMatcher: BlockMarkdownAdapterMatcher =
             break;
           }
           case 'blockquote': {
+            if (isCalloutNode(o.node)) {
+              return;
+            }
+
             walkerContext
               .openNode(
                 {
@@ -117,6 +104,12 @@ export const paragraphBlockMarkdownAdapterMatcher: BlockMarkdownAdapterMatcher =
             walkerContext.skipAllChildren();
             break;
           }
+        }
+      },
+      leave: (o, context) => {
+        if (o.node.type === 'paragraph') {
+          const { walkerContext } = context;
+          walkerContext.setGlobalContext(IN_PARAGRAPH_NODE_CONTEXT_KEY, false);
         }
       },
     },

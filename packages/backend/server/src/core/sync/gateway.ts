@@ -14,6 +14,7 @@ import {
   CallMetric,
   DocNotFound,
   DocUpdateBlocked,
+  EventBus,
   GatewayErrorWrapper,
   metrics,
   NotInSpace,
@@ -144,6 +145,7 @@ export class SpaceSyncGateway
 
   constructor(
     private readonly ac: AccessController,
+    private readonly event: EventBus,
     private readonly workspace: PgWorkspaceDocStorageAdapter,
     private readonly userspace: PgUserspaceDocStorageAdapter,
     private readonly docReader: DocReader,
@@ -152,13 +154,15 @@ export class SpaceSyncGateway
 
   handleConnection() {
     this.connectionCount++;
-    this.logger.log(`New connection, total: ${this.connectionCount}`);
+    this.logger.debug(`New connection, total: ${this.connectionCount}`);
     metrics.socketio.gauge('connections').record(this.connectionCount);
   }
 
   handleDisconnect() {
     this.connectionCount--;
-    this.logger.log(`Connection disconnected, total: ${this.connectionCount}`);
+    this.logger.debug(
+      `Connection disconnected, total: ${this.connectionCount}`
+    );
     metrics.socketio.gauge('connections').record(this.connectionCount);
   }
 
@@ -199,6 +203,9 @@ export class SpaceSyncGateway
         await client.join(room);
       }
     } else {
+      if (spaceType === SpaceType.Workspace) {
+        this.event.emit('workspace.embedding', { workspaceId: spaceId });
+      }
       await this.selectAdapter(client, spaceType).join(user.id, spaceId);
     }
 

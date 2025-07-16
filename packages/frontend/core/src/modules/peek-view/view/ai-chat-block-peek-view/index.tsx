@@ -1,10 +1,11 @@
 import { toReactNode } from '@affine/component';
 import { AIChatBlockPeekViewTemplate } from '@affine/core/blocksuite/ai';
 import type { AIChatBlockModel } from '@affine/core/blocksuite/ai/blocks/ai-chat-block/model/ai-chat-model';
-import { enableFootnoteConfigExtension } from '@affine/core/blocksuite/extensions';
 import { useAIChatConfig } from '@affine/core/components/hooks/affine/use-ai-chat-config';
-import { SpecProvider } from '@blocksuite/affine/shared/utils';
+import { WorkspaceDialogService } from '@affine/core/modules/dialogs';
+import { FeatureFlagService } from '@affine/core/modules/feature-flag';
 import type { EditorHost } from '@blocksuite/affine/std';
+import { useFramework } from '@toeverything/infra';
 import { useMemo } from 'react';
 
 export type AIChatBlockPeekViewProps = {
@@ -16,20 +17,37 @@ export const AIChatBlockPeekView = ({
   model,
   host,
 }: AIChatBlockPeekViewProps) => {
-  const { docDisplayConfig, searchMenuConfig, networkSearchConfig } =
-    useAIChatConfig();
+  const {
+    docDisplayConfig,
+    searchMenuConfig,
+    networkSearchConfig,
+    reasoningConfig,
+  } = useAIChatConfig();
+
+  const framework = useFramework();
+  const affineFeatureFlagService = framework.get(FeatureFlagService);
+  const affineWorkspaceDialogService = framework.get(WorkspaceDialogService);
+
   return useMemo(() => {
-    const previewSpecBuilder = enableFootnoteConfigExtension(
-      SpecProvider._.getSpec('preview:page')
-    );
     const template = AIChatBlockPeekViewTemplate(
       model,
       host,
-      previewSpecBuilder,
       docDisplayConfig,
       searchMenuConfig,
-      networkSearchConfig
+      networkSearchConfig,
+      reasoningConfig,
+      affineFeatureFlagService,
+      affineWorkspaceDialogService
     );
     return toReactNode(template);
-  }, [model, host, docDisplayConfig, searchMenuConfig, networkSearchConfig]);
+  }, [
+    model,
+    host,
+    docDisplayConfig,
+    searchMenuConfig,
+    networkSearchConfig,
+    reasoningConfig,
+    affineFeatureFlagService,
+    affineWorkspaceDialogService,
+  ]);
 };

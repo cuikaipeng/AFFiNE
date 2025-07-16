@@ -50,8 +50,50 @@ export interface AddContextDocInput {
 }
 
 export interface AddContextFileInput {
-  blobId: Scalars['String']['input'];
+  blobId?: InputMaybe<Scalars['String']['input']>;
   contextId: Scalars['String']['input'];
+}
+
+export interface AggregateBucketHitsObjectType {
+  __typename?: 'AggregateBucketHitsObjectType';
+  nodes: Array<SearchNodeObjectType>;
+}
+
+export interface AggregateBucketObjectType {
+  __typename?: 'AggregateBucketObjectType';
+  count: Scalars['Int']['output'];
+  /** The hits object */
+  hits: AggregateBucketHitsObjectType;
+  key: Scalars['String']['output'];
+}
+
+export interface AggregateHitsOptions {
+  fields: Array<Scalars['String']['input']>;
+  highlights?: InputMaybe<Array<SearchHighlight>>;
+  pagination?: InputMaybe<AggregateHitsPagination>;
+}
+
+export interface AggregateHitsPagination {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+}
+
+export interface AggregateInput {
+  field: Scalars['String']['input'];
+  options: AggregateOptions;
+  query: SearchQuery;
+  table: SearchTable;
+}
+
+export interface AggregateOptions {
+  hits: AggregateHitsOptions;
+  pagination?: InputMaybe<SearchPagination>;
+}
+
+export interface AggregateResultObjectType {
+  __typename?: 'AggregateResultObjectType';
+  buckets: Array<AggregateBucketObjectType>;
+  pagination: SearchResultPagination;
 }
 
 export enum AiJobStatus {
@@ -65,6 +107,15 @@ export enum AiJobStatus {
 export interface AlreadyInSpaceDataType {
   __typename?: 'AlreadyInSpaceDataType';
   spaceId: Scalars['String']['output'];
+}
+
+export interface AppConfigValidateResult {
+  __typename?: 'AppConfigValidateResult';
+  error: Maybe<Scalars['String']['output']>;
+  key: Scalars['String']['output'];
+  module: Scalars['String']['output'];
+  valid: Scalars['Boolean']['output'];
+  value: Scalars['JSON']['output'];
 }
 
 export interface BlobNotFoundDataType {
@@ -86,6 +137,73 @@ export interface ChatMessage {
   id: Maybe<Scalars['ID']['output']>;
   params: Maybe<Scalars['JSON']['output']>;
   role: Scalars['String']['output'];
+  streamObjects: Maybe<Array<StreamObject>>;
+}
+
+/** Comment change action */
+export enum CommentChangeAction {
+  delete = 'delete',
+  update = 'update',
+}
+
+export interface CommentChangeObjectType {
+  __typename?: 'CommentChangeObjectType';
+  /** The action of the comment change */
+  action: CommentChangeAction;
+  commentId: Maybe<Scalars['ID']['output']>;
+  id: Scalars['ID']['output'];
+  /** The item of the comment or reply, different types have different fields, see UnionCommentObjectType */
+  item: Scalars['JSONObject']['output'];
+}
+
+export interface CommentChangeObjectTypeEdge {
+  __typename?: 'CommentChangeObjectTypeEdge';
+  cursor: Scalars['String']['output'];
+  node: CommentChangeObjectType;
+}
+
+export interface CommentCreateInput {
+  content: Scalars['JSONObject']['input'];
+  docId: Scalars['ID']['input'];
+  docMode: DocMode;
+  docTitle: Scalars['String']['input'];
+  /** The mention user ids, if not provided, the comment will not be mentioned */
+  mentions?: InputMaybe<Array<Scalars['String']['input']>>;
+  workspaceId: Scalars['ID']['input'];
+}
+
+export interface CommentObjectType {
+  __typename?: 'CommentObjectType';
+  /** The content of the comment */
+  content: Scalars['JSONObject']['output'];
+  /** The created at time of the comment */
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  /** The replies of the comment */
+  replies: Array<ReplyObjectType>;
+  /** Whether the comment is resolved */
+  resolved: Scalars['Boolean']['output'];
+  /** The updated at time of the comment */
+  updatedAt: Scalars['DateTime']['output'];
+  /** The user who created the comment */
+  user: PublicUserType;
+}
+
+export interface CommentObjectTypeEdge {
+  __typename?: 'CommentObjectTypeEdge';
+  cursor: Scalars['String']['output'];
+  node: CommentObjectType;
+}
+
+export interface CommentResolveInput {
+  id: Scalars['ID']['input'];
+  /** Whether the comment is resolved */
+  resolved: Scalars['Boolean']['input'];
+}
+
+export interface CommentUpdateInput {
+  content: Scalars['JSONObject']['input'];
+  id: Scalars['ID']['input'];
 }
 
 export enum ContextCategories {
@@ -109,10 +227,13 @@ export interface ContextMatchedDocChunk {
 
 export interface ContextMatchedFileChunk {
   __typename?: 'ContextMatchedFileChunk';
+  blobId: Scalars['String']['output'];
   chunk: Scalars['SafeInt']['output'];
   content: Scalars['String']['output'];
   distance: Maybe<Scalars['Float']['output']>;
   fileId: Scalars['String']['output'];
+  mimeType: Scalars['String']['output'];
+  name: Scalars['String']['output'];
 }
 
 export interface ContextWorkspaceEmbeddingStatus {
@@ -124,17 +245,19 @@ export interface ContextWorkspaceEmbeddingStatus {
 export interface Copilot {
   __typename?: 'Copilot';
   audioTranscription: Maybe<TranscriptionResultType>;
+  chats: PaginatedCopilotHistoriesType;
   /** Get the context list of a session */
   contexts: Array<CopilotContext>;
+  /** @deprecated use `chats` instead */
   histories: Array<CopilotHistories>;
   /** Get the quota of the user in the workspace */
   quota: CopilotQuota;
+  /** Get the session by id */
+  session: CopilotSessionType;
   /**
-   * Get the session id list in the workspace
-   * @deprecated Use `sessions` instead
+   * Get the session list in the workspace
+   * @deprecated use `chats` instead
    */
-  sessionIds: Array<Scalars['String']['output']>;
-  /** Get the session list in the workspace */
   sessions: Array<CopilotSessionType>;
   workspaceId: Maybe<Scalars['ID']['output']>;
 }
@@ -142,6 +265,12 @@ export interface Copilot {
 export interface CopilotAudioTranscriptionArgs {
   blobId?: InputMaybe<Scalars['String']['input']>;
   jobId?: InputMaybe<Scalars['String']['input']>;
+}
+
+export interface CopilotChatsArgs {
+  docId?: InputMaybe<Scalars['String']['input']>;
+  options?: InputMaybe<QueryChatHistoriesInput>;
+  pagination: PaginationInput;
 }
 
 export interface CopilotContextsArgs {
@@ -154,9 +283,8 @@ export interface CopilotHistoriesArgs {
   options?: InputMaybe<QueryChatHistoriesInput>;
 }
 
-export interface CopilotSessionIdsArgs {
-  docId?: InputMaybe<Scalars['String']['input']>;
-  options?: InputMaybe<QueryChatSessionsInput>;
+export interface CopilotSessionArgs {
+  sessionId: Scalars['String']['input'];
 }
 
 export interface CopilotSessionsArgs {
@@ -172,7 +300,7 @@ export interface CopilotContext {
   docs: Array<CopilotContextDoc>;
   /** list files in context */
   files: Array<CopilotContextFile>;
-  id: Scalars['ID']['output'];
+  id: Maybe<Scalars['ID']['output']>;
   /** match file in context */
   matchFiles: Array<ContextMatchedFileChunk>;
   /** match workspace docs */
@@ -185,12 +313,14 @@ export interface CopilotContext {
 export interface CopilotContextMatchFilesArgs {
   content: Scalars['String']['input'];
   limit?: InputMaybe<Scalars['SafeInt']['input']>;
+  scopedThreshold?: InputMaybe<Scalars['Float']['input']>;
   threshold?: InputMaybe<Scalars['Float']['input']>;
 }
 
 export interface CopilotContextMatchWorkspaceDocsArgs {
   content: Scalars['String']['input'];
   limit?: InputMaybe<Scalars['SafeInt']['input']>;
+  scopedThreshold?: InputMaybe<Scalars['Float']['input']>;
   threshold?: InputMaybe<Scalars['Float']['input']>;
 }
 
@@ -217,6 +347,7 @@ export interface CopilotContextFile {
   createdAt: Scalars['SafeInt']['output'];
   error: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  mimeType: Scalars['String']['output'];
   name: Scalars['String']['output'];
   status: ContextEmbedStatus;
 }
@@ -239,11 +370,29 @@ export interface CopilotDocType {
   status: Maybe<ContextEmbedStatus>;
 }
 
+export interface CopilotFailedToAddWorkspaceFileEmbeddingDataType {
+  __typename?: 'CopilotFailedToAddWorkspaceFileEmbeddingDataType';
+  message: Scalars['String']['output'];
+}
+
+export interface CopilotFailedToGenerateEmbeddingDataType {
+  __typename?: 'CopilotFailedToGenerateEmbeddingDataType';
+  message: Scalars['String']['output'];
+  provider: Scalars['String']['output'];
+}
+
 export interface CopilotFailedToMatchContextDataType {
   __typename?: 'CopilotFailedToMatchContextDataType';
   content: Scalars['String']['output'];
   contextId: Scalars['String']['output'];
   message: Scalars['String']['output'];
+}
+
+export interface CopilotFailedToMatchGlobalContextDataType {
+  __typename?: 'CopilotFailedToMatchGlobalContextDataType';
+  content: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+  workspaceId: Scalars['String']['output'];
 }
 
 export interface CopilotFailedToModifyContextDataType {
@@ -257,10 +406,25 @@ export interface CopilotHistories {
   /** An mark identifying which view to use to display the session */
   action: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
+  docId: Maybe<Scalars['String']['output']>;
   messages: Array<ChatMessage>;
+  model: Scalars['String']['output'];
+  optionalModels: Array<Scalars['String']['output']>;
+  parentSessionId: Maybe<Scalars['String']['output']>;
+  pinned: Scalars['Boolean']['output'];
+  promptName: Scalars['String']['output'];
   sessionId: Scalars['String']['output'];
+  title: Maybe<Scalars['String']['output']>;
   /** The number of tokens used in the session */
   tokens: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  workspaceId: Scalars['String']['output'];
+}
+
+export interface CopilotHistoriesTypeEdge {
+  __typename?: 'CopilotHistoriesTypeEdge';
+  cursor: Scalars['String']['output'];
+  node: CopilotHistories;
 }
 
 export interface CopilotInvalidContextDataType {
@@ -273,22 +437,8 @@ export interface CopilotMessageNotFoundDataType {
   messageId: Scalars['String']['output'];
 }
 
-export enum CopilotModels {
-  DallE3 = 'DallE3',
-  Gpt4Omni = 'Gpt4Omni',
-  Gpt4Omni0806 = 'Gpt4Omni0806',
-  Gpt4OmniMini = 'Gpt4OmniMini',
-  Gpt4OmniMini0718 = 'Gpt4OmniMini0718',
-  TextEmbedding3Large = 'TextEmbedding3Large',
-  TextEmbedding3Small = 'TextEmbedding3Small',
-  TextEmbeddingAda002 = 'TextEmbeddingAda002',
-  TextModerationLatest = 'TextModerationLatest',
-  TextModerationStable = 'TextModerationStable',
-}
-
 export interface CopilotPromptConfigInput {
   frequencyPenalty?: InputMaybe<Scalars['Float']['input']>;
-  jsonMode?: InputMaybe<Scalars['Boolean']['input']>;
   presencePenalty?: InputMaybe<Scalars['Float']['input']>;
   temperature?: InputMaybe<Scalars['Float']['input']>;
   topP?: InputMaybe<Scalars['Float']['input']>;
@@ -297,7 +447,6 @@ export interface CopilotPromptConfigInput {
 export interface CopilotPromptConfigType {
   __typename?: 'CopilotPromptConfigType';
   frequencyPenalty: Maybe<Scalars['Float']['output']>;
-  jsonMode: Maybe<Scalars['Boolean']['output']>;
   presencePenalty: Maybe<Scalars['Float']['output']>;
   temperature: Maybe<Scalars['Float']['output']>;
   topP: Maybe<Scalars['Float']['output']>;
@@ -336,6 +485,12 @@ export interface CopilotPromptType {
   name: Scalars['String']['output'];
 }
 
+export interface CopilotProviderNotSupportedDataType {
+  __typename?: 'CopilotProviderNotSupportedDataType';
+  kind: Scalars['String']['output'];
+  provider: Scalars['String']['output'];
+}
+
 export interface CopilotProviderSideErrorDataType {
   __typename?: 'CopilotProviderSideErrorDataType';
   kind: Scalars['String']['output'];
@@ -351,9 +506,65 @@ export interface CopilotQuota {
 
 export interface CopilotSessionType {
   __typename?: 'CopilotSessionType';
+  docId: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  model: Scalars['String']['output'];
+  optionalModels: Array<Scalars['String']['output']>;
   parentSessionId: Maybe<Scalars['ID']['output']>;
+  pinned: Scalars['Boolean']['output'];
   promptName: Scalars['String']['output'];
+  title: Maybe<Scalars['String']['output']>;
+}
+
+export interface CopilotWorkspaceConfig {
+  __typename?: 'CopilotWorkspaceConfig';
+  allIgnoredDocs: Array<CopilotWorkspaceIgnoredDoc>;
+  files: PaginatedCopilotWorkspaceFileType;
+  ignoredDocs: PaginatedIgnoredDocsType;
+  workspaceId: Scalars['String']['output'];
+}
+
+export interface CopilotWorkspaceConfigFilesArgs {
+  pagination: PaginationInput;
+}
+
+export interface CopilotWorkspaceConfigIgnoredDocsArgs {
+  pagination: PaginationInput;
+}
+
+export interface CopilotWorkspaceFile {
+  __typename?: 'CopilotWorkspaceFile';
+  blobId: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  fileId: Scalars['String']['output'];
+  fileName: Scalars['String']['output'];
+  mimeType: Scalars['String']['output'];
+  size: Scalars['SafeInt']['output'];
+  workspaceId: Scalars['String']['output'];
+}
+
+export interface CopilotWorkspaceFileTypeEdge {
+  __typename?: 'CopilotWorkspaceFileTypeEdge';
+  cursor: Scalars['String']['output'];
+  node: CopilotWorkspaceFile;
+}
+
+export interface CopilotWorkspaceIgnoredDoc {
+  __typename?: 'CopilotWorkspaceIgnoredDoc';
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: Maybe<Scalars['String']['output']>;
+  createdByAvatar: Maybe<Scalars['String']['output']>;
+  docCreatedAt: Maybe<Scalars['DateTime']['output']>;
+  docId: Scalars['String']['output'];
+  docUpdatedAt: Maybe<Scalars['DateTime']['output']>;
+  title: Maybe<Scalars['String']['output']>;
+  updatedBy: Maybe<Scalars['String']['output']>;
+}
+
+export interface CopilotWorkspaceIgnoredDocTypeEdge {
+  __typename?: 'CopilotWorkspaceIgnoredDocTypeEdge';
+  cursor: Scalars['String']['output'];
+  node: CopilotWorkspaceIgnoredDoc;
 }
 
 export interface CreateChatMessageInput {
@@ -365,9 +576,12 @@ export interface CreateChatMessageInput {
 }
 
 export interface CreateChatSessionInput {
-  docId: Scalars['String']['input'];
+  docId?: InputMaybe<Scalars['String']['input']>;
+  pinned?: InputMaybe<Scalars['Boolean']['input']>;
   /** The prompt name to use for the session */
   promptName: Scalars['String']['input'];
+  /** true by default, compliant for old version */
+  reuseLatestChat?: InputMaybe<Scalars['Boolean']['input']>;
   workspaceId: Scalars['String']['input'];
 }
 
@@ -385,13 +599,14 @@ export interface CreateCopilotPromptInput {
   action?: InputMaybe<Scalars['String']['input']>;
   config?: InputMaybe<CopilotPromptConfigInput>;
   messages: Array<CopilotPromptMessageInput>;
-  model: CopilotModels;
+  model: Scalars['String']['input'];
   name: Scalars['String']['input'];
 }
 
 export interface CreateUserInput {
   email: Scalars['String']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
+  password?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface CredentialsRequirementType {
@@ -446,6 +661,10 @@ export interface DocNotFoundDataType {
 
 export interface DocPermissions {
   __typename?: 'DocPermissions';
+  Doc_Comments_Create: Scalars['Boolean']['output'];
+  Doc_Comments_Delete: Scalars['Boolean']['output'];
+  Doc_Comments_Read: Scalars['Boolean']['output'];
+  Doc_Comments_Resolve: Scalars['Boolean']['output'];
   Doc_Copy: Scalars['Boolean']['output'];
   Doc_Delete: Scalars['Boolean']['output'];
   Doc_Duplicate: Scalars['Boolean']['output'];
@@ -463,6 +682,7 @@ export interface DocPermissions {
 
 /** User permission in doc */
 export enum DocRole {
+  Commenter = 'Commenter',
   Editor = 'Editor',
   External = 'External',
   Manager = 'Manager',
@@ -473,18 +693,36 @@ export enum DocRole {
 
 export interface DocType {
   __typename?: 'DocType';
+  createdAt: Maybe<Scalars['DateTime']['output']>;
+  /** Doc create user */
+  createdBy: Maybe<PublicUserType>;
+  creatorId: Maybe<Scalars['String']['output']>;
   defaultRole: DocRole;
   /** paginated doc granted users list */
   grantedUsersList: PaginatedGrantedDocUserType;
   id: Scalars['String']['output'];
+  /** Doc last updated user */
+  lastUpdatedBy: Maybe<PublicUserType>;
+  lastUpdaterId: Maybe<Scalars['String']['output']>;
+  /** Doc metadata */
+  meta: WorkspaceDocMeta;
   mode: PublicDocMode;
   permissions: DocPermissions;
   public: Scalars['Boolean']['output'];
+  summary: Maybe<Scalars['String']['output']>;
+  title: Maybe<Scalars['String']['output']>;
+  updatedAt: Maybe<Scalars['DateTime']['output']>;
   workspaceId: Scalars['String']['output'];
 }
 
 export interface DocTypeGrantedUsersListArgs {
   pagination: PaginationInput;
+}
+
+export interface DocTypeEdge {
+  __typename?: 'DocTypeEdge';
+  cursor: Scalars['String']['output'];
+  node: DocType;
 }
 
 export interface DocUpdateBlockedDataType {
@@ -504,11 +742,15 @@ export type ErrorDataUnion =
   | BlobNotFoundDataType
   | CopilotContextFileNotSupportedDataType
   | CopilotDocNotFoundDataType
+  | CopilotFailedToAddWorkspaceFileEmbeddingDataType
+  | CopilotFailedToGenerateEmbeddingDataType
   | CopilotFailedToMatchContextDataType
+  | CopilotFailedToMatchGlobalContextDataType
   | CopilotFailedToModifyContextDataType
   | CopilotInvalidContextDataType
   | CopilotMessageNotFoundDataType
   | CopilotPromptNotFoundDataType
+  | CopilotProviderNotSupportedDataType
   | CopilotProviderSideErrorDataType
   | DocActionDeniedDataType
   | DocHistoryNotFoundDataType
@@ -519,15 +761,23 @@ export type ErrorDataUnion =
   | ExpectToUpdateDocUserRoleDataType
   | GraphqlBadRequestDataType
   | HttpRequestErrorDataType
+  | InvalidAppConfigDataType
+  | InvalidAppConfigInputDataType
   | InvalidEmailDataType
   | InvalidHistoryTimestampDataType
+  | InvalidIndexerInputDataType
+  | InvalidLicenseToActivateDataType
   | InvalidLicenseUpdateParamsDataType
   | InvalidOauthCallbackCodeDataType
+  | InvalidOauthResponseDataType
   | InvalidPasswordLengthDataType
   | InvalidRuntimeConfigTypeDataType
+  | InvalidSearchProviderRequestDataType
   | MemberNotFoundInSpaceDataType
   | MentionUserDocAccessDeniedDataType
   | MissingOauthQueryParameterDataType
+  | NoCopilotProviderAvailableDataType
+  | NoMoreSeatDataType
   | NotInSpaceDataType
   | QueryTooLongDataType
   | RuntimeConfigNotFoundDataType
@@ -544,7 +794,6 @@ export type ErrorDataUnion =
   | UnsupportedSubscriptionPlanDataType
   | ValidationErrorDataType
   | VersionRejectedDataType
-  | WorkspaceMembersExceedLimitToDowngradeDataType
   | WorkspacePermissionNotFoundDataType
   | WrongSignInCredentialsDataType;
 
@@ -557,28 +806,38 @@ export enum ErrorNames {
   BAD_REQUEST = 'BAD_REQUEST',
   BLOB_NOT_FOUND = 'BLOB_NOT_FOUND',
   BLOB_QUOTA_EXCEEDED = 'BLOB_QUOTA_EXCEEDED',
+  CANNOT_DELETE_ACCOUNT_WITH_OWNED_TEAM_WORKSPACE = 'CANNOT_DELETE_ACCOUNT_WITH_OWNED_TEAM_WORKSPACE',
   CANNOT_DELETE_ALL_ADMIN_ACCOUNT = 'CANNOT_DELETE_ALL_ADMIN_ACCOUNT',
   CANNOT_DELETE_OWN_ACCOUNT = 'CANNOT_DELETE_OWN_ACCOUNT',
   CANT_UPDATE_ONETIME_PAYMENT_SUBSCRIPTION = 'CANT_UPDATE_ONETIME_PAYMENT_SUBSCRIPTION',
   CAN_NOT_BATCH_GRANT_DOC_OWNER_PERMISSIONS = 'CAN_NOT_BATCH_GRANT_DOC_OWNER_PERMISSIONS',
   CAN_NOT_REVOKE_YOURSELF = 'CAN_NOT_REVOKE_YOURSELF',
   CAPTCHA_VERIFICATION_FAILED = 'CAPTCHA_VERIFICATION_FAILED',
+  COMMENT_ATTACHMENT_NOT_FOUND = 'COMMENT_ATTACHMENT_NOT_FOUND',
+  COMMENT_ATTACHMENT_QUOTA_EXCEEDED = 'COMMENT_ATTACHMENT_QUOTA_EXCEEDED',
+  COMMENT_NOT_FOUND = 'COMMENT_NOT_FOUND',
   COPILOT_ACTION_TAKEN = 'COPILOT_ACTION_TAKEN',
   COPILOT_CONTEXT_FILE_NOT_SUPPORTED = 'COPILOT_CONTEXT_FILE_NOT_SUPPORTED',
   COPILOT_DOCS_NOT_FOUND = 'COPILOT_DOCS_NOT_FOUND',
   COPILOT_DOC_NOT_FOUND = 'COPILOT_DOC_NOT_FOUND',
+  COPILOT_EMBEDDING_DISABLED = 'COPILOT_EMBEDDING_DISABLED',
   COPILOT_EMBEDDING_UNAVAILABLE = 'COPILOT_EMBEDDING_UNAVAILABLE',
+  COPILOT_FAILED_TO_ADD_WORKSPACE_FILE_EMBEDDING = 'COPILOT_FAILED_TO_ADD_WORKSPACE_FILE_EMBEDDING',
   COPILOT_FAILED_TO_CREATE_MESSAGE = 'COPILOT_FAILED_TO_CREATE_MESSAGE',
+  COPILOT_FAILED_TO_GENERATE_EMBEDDING = 'COPILOT_FAILED_TO_GENERATE_EMBEDDING',
   COPILOT_FAILED_TO_GENERATE_TEXT = 'COPILOT_FAILED_TO_GENERATE_TEXT',
   COPILOT_FAILED_TO_MATCH_CONTEXT = 'COPILOT_FAILED_TO_MATCH_CONTEXT',
+  COPILOT_FAILED_TO_MATCH_GLOBAL_CONTEXT = 'COPILOT_FAILED_TO_MATCH_GLOBAL_CONTEXT',
   COPILOT_FAILED_TO_MODIFY_CONTEXT = 'COPILOT_FAILED_TO_MODIFY_CONTEXT',
   COPILOT_INVALID_CONTEXT = 'COPILOT_INVALID_CONTEXT',
   COPILOT_MESSAGE_NOT_FOUND = 'COPILOT_MESSAGE_NOT_FOUND',
   COPILOT_PROMPT_INVALID = 'COPILOT_PROMPT_INVALID',
   COPILOT_PROMPT_NOT_FOUND = 'COPILOT_PROMPT_NOT_FOUND',
+  COPILOT_PROVIDER_NOT_SUPPORTED = 'COPILOT_PROVIDER_NOT_SUPPORTED',
   COPILOT_PROVIDER_SIDE_ERROR = 'COPILOT_PROVIDER_SIDE_ERROR',
   COPILOT_QUOTA_EXCEEDED = 'COPILOT_QUOTA_EXCEEDED',
   COPILOT_SESSION_DELETED = 'COPILOT_SESSION_DELETED',
+  COPILOT_SESSION_INVALID_INPUT = 'COPILOT_SESSION_INVALID_INPUT',
   COPILOT_SESSION_NOT_FOUND = 'COPILOT_SESSION_NOT_FOUND',
   COPILOT_TRANSCRIPTION_AUDIO_NOT_PROVIDED = 'COPILOT_TRANSCRIPTION_AUDIO_NOT_PROVIDED',
   COPILOT_TRANSCRIPTION_JOB_EXISTS = 'COPILOT_TRANSCRIPTION_JOB_EXISTS',
@@ -592,6 +851,7 @@ export enum ErrorNames {
   DOC_UPDATE_BLOCKED = 'DOC_UPDATE_BLOCKED',
   EARLY_ACCESS_REQUIRED = 'EARLY_ACCESS_REQUIRED',
   EMAIL_ALREADY_USED = 'EMAIL_ALREADY_USED',
+  EMAIL_SERVICE_NOT_CONFIGURED = 'EMAIL_SERVICE_NOT_CONFIGURED',
   EMAIL_TOKEN_NOT_FOUND = 'EMAIL_TOKEN_NOT_FOUND',
   EMAIL_VERIFICATION_REQUIRED = 'EMAIL_VERIFICATION_REQUIRED',
   EXPECT_TO_GRANT_DOC_USER_ROLES = 'EXPECT_TO_GRANT_DOC_USER_ROLES',
@@ -606,19 +866,25 @@ export enum ErrorNames {
   HTTP_REQUEST_ERROR = 'HTTP_REQUEST_ERROR',
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
   INVALID_APP_CONFIG = 'INVALID_APP_CONFIG',
+  INVALID_APP_CONFIG_INPUT = 'INVALID_APP_CONFIG_INPUT',
   INVALID_AUTH_STATE = 'INVALID_AUTH_STATE',
   INVALID_CHECKOUT_PARAMETERS = 'INVALID_CHECKOUT_PARAMETERS',
   INVALID_EMAIL = 'INVALID_EMAIL',
   INVALID_EMAIL_TOKEN = 'INVALID_EMAIL_TOKEN',
   INVALID_HISTORY_TIMESTAMP = 'INVALID_HISTORY_TIMESTAMP',
+  INVALID_INDEXER_INPUT = 'INVALID_INDEXER_INPUT',
+  INVALID_INVITATION = 'INVALID_INVITATION',
   INVALID_LICENSE_SESSION_ID = 'INVALID_LICENSE_SESSION_ID',
   INVALID_LICENSE_TO_ACTIVATE = 'INVALID_LICENSE_TO_ACTIVATE',
   INVALID_LICENSE_UPDATE_PARAMS = 'INVALID_LICENSE_UPDATE_PARAMS',
   INVALID_OAUTH_CALLBACK_CODE = 'INVALID_OAUTH_CALLBACK_CODE',
   INVALID_OAUTH_CALLBACK_STATE = 'INVALID_OAUTH_CALLBACK_STATE',
+  INVALID_OAUTH_RESPONSE = 'INVALID_OAUTH_RESPONSE',
   INVALID_PASSWORD_LENGTH = 'INVALID_PASSWORD_LENGTH',
   INVALID_RUNTIME_CONFIG_TYPE = 'INVALID_RUNTIME_CONFIG_TYPE',
+  INVALID_SEARCH_PROVIDER_REQUEST = 'INVALID_SEARCH_PROVIDER_REQUEST',
   INVALID_SUBSCRIPTION_PARAMETERS = 'INVALID_SUBSCRIPTION_PARAMETERS',
+  LICENSE_EXPIRED = 'LICENSE_EXPIRED',
   LICENSE_NOT_FOUND = 'LICENSE_NOT_FOUND',
   LICENSE_REVEALED = 'LICENSE_REVEALED',
   LINK_EXPIRED = 'LINK_EXPIRED',
@@ -629,18 +895,22 @@ export enum ErrorNames {
   MENTION_USER_ONESELF_DENIED = 'MENTION_USER_ONESELF_DENIED',
   MISSING_OAUTH_QUERY_PARAMETER = 'MISSING_OAUTH_QUERY_PARAMETER',
   NETWORK_ERROR = 'NETWORK_ERROR',
+  NEW_OWNER_IS_NOT_ACTIVE_MEMBER = 'NEW_OWNER_IS_NOT_ACTIVE_MEMBER',
   NOTIFICATION_NOT_FOUND = 'NOTIFICATION_NOT_FOUND',
   NOT_FOUND = 'NOT_FOUND',
   NOT_IN_SPACE = 'NOT_IN_SPACE',
   NO_COPILOT_PROVIDER_AVAILABLE = 'NO_COPILOT_PROVIDER_AVAILABLE',
+  NO_MORE_SEAT = 'NO_MORE_SEAT',
   OAUTH_ACCOUNT_ALREADY_CONNECTED = 'OAUTH_ACCOUNT_ALREADY_CONNECTED',
   OAUTH_STATE_EXPIRED = 'OAUTH_STATE_EXPIRED',
   OWNER_CAN_NOT_LEAVE_WORKSPACE = 'OWNER_CAN_NOT_LEAVE_WORKSPACE',
   PASSWORD_REQUIRED = 'PASSWORD_REQUIRED',
   QUERY_TOO_LONG = 'QUERY_TOO_LONG',
+  REPLY_NOT_FOUND = 'REPLY_NOT_FOUND',
   RUNTIME_CONFIG_NOT_FOUND = 'RUNTIME_CONFIG_NOT_FOUND',
   SAME_EMAIL_PROVIDED = 'SAME_EMAIL_PROVIDED',
   SAME_SUBSCRIPTION_RECURRING = 'SAME_SUBSCRIPTION_RECURRING',
+  SEARCH_PROVIDER_NOT_FOUND = 'SEARCH_PROVIDER_NOT_FOUND',
   SIGN_UP_FORBIDDEN = 'SIGN_UP_FORBIDDEN',
   SPACE_ACCESS_DENIED = 'SPACE_ACCESS_DENIED',
   SPACE_NOT_FOUND = 'SPACE_NOT_FOUND',
@@ -665,7 +935,6 @@ export enum ErrorNames {
   WORKSPACE_ID_REQUIRED_FOR_TEAM_SUBSCRIPTION = 'WORKSPACE_ID_REQUIRED_FOR_TEAM_SUBSCRIPTION',
   WORKSPACE_ID_REQUIRED_TO_UPDATE_TEAM_SUBSCRIPTION = 'WORKSPACE_ID_REQUIRED_TO_UPDATE_TEAM_SUBSCRIPTION',
   WORKSPACE_LICENSE_ALREADY_EXISTS = 'WORKSPACE_LICENSE_ALREADY_EXISTS',
-  WORKSPACE_MEMBERS_EXCEED_LIMIT_TO_DOWNGRADE = 'WORKSPACE_MEMBERS_EXCEED_LIMIT_TO_DOWNGRADE',
   WORKSPACE_PERMISSION_NOT_FOUND = 'WORKSPACE_PERMISSION_NOT_FOUND',
   WRONG_SIGN_IN_CREDENTIALS = 'WRONG_SIGN_IN_CREDENTIALS',
   WRONG_SIGN_IN_METHOD = 'WRONG_SIGN_IN_METHOD',
@@ -704,7 +973,7 @@ export enum FeatureType {
 export interface ForkChatSessionInput {
   docId: Scalars['String']['input'];
   /** Identify a message in the array and keep it with all previous messages into a forked session. */
-  latestMessageId: Scalars['String']['input'];
+  latestMessageId?: InputMaybe<Scalars['String']['input']>;
   sessionId: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
 }
@@ -743,6 +1012,18 @@ export interface ImportUsersInput {
   users: Array<CreateUserInput>;
 }
 
+export interface InvalidAppConfigDataType {
+  __typename?: 'InvalidAppConfigDataType';
+  hint: Scalars['String']['output'];
+  key: Scalars['String']['output'];
+  module: Scalars['String']['output'];
+}
+
+export interface InvalidAppConfigInputDataType {
+  __typename?: 'InvalidAppConfigInputDataType';
+  message: Scalars['String']['output'];
+}
+
 export interface InvalidEmailDataType {
   __typename?: 'InvalidEmailDataType';
   email: Scalars['String']['output'];
@@ -751,6 +1032,16 @@ export interface InvalidEmailDataType {
 export interface InvalidHistoryTimestampDataType {
   __typename?: 'InvalidHistoryTimestampDataType';
   timestamp: Scalars['String']['output'];
+}
+
+export interface InvalidIndexerInputDataType {
+  __typename?: 'InvalidIndexerInputDataType';
+  reason: Scalars['String']['output'];
+}
+
+export interface InvalidLicenseToActivateDataType {
+  __typename?: 'InvalidLicenseToActivateDataType';
+  reason: Scalars['String']['output'];
 }
 
 export interface InvalidLicenseUpdateParamsDataType {
@@ -764,6 +1055,11 @@ export interface InvalidOauthCallbackCodeDataType {
   status: Scalars['Int']['output'];
 }
 
+export interface InvalidOauthResponseDataType {
+  __typename?: 'InvalidOauthResponseDataType';
+  reason: Scalars['String']['output'];
+}
+
 export interface InvalidPasswordLengthDataType {
   __typename?: 'InvalidPasswordLengthDataType';
   max: Scalars['Int']['output'];
@@ -775,6 +1071,12 @@ export interface InvalidRuntimeConfigTypeDataType {
   get: Scalars['String']['output'];
   key: Scalars['String']['output'];
   want: Scalars['String']['output'];
+}
+
+export interface InvalidSearchProviderRequestDataType {
+  __typename?: 'InvalidSearchProviderRequestDataType';
+  reason: Scalars['String']['output'];
+  type: Scalars['String']['output'];
 }
 
 export interface InvitationAcceptedNotificationBodyType {
@@ -868,19 +1170,19 @@ export interface InviteLink {
 export interface InviteResult {
   __typename?: 'InviteResult';
   email: Scalars['String']['output'];
+  /** Invite error */
+  error: Maybe<Scalars['JSONObject']['output']>;
   /** Invite id, null if invite record create failed */
   inviteId: Maybe<Scalars['String']['output']>;
-  /** Invite email sent success */
+  /**
+   * Invite email sent success
+   * @deprecated Notification will be sent asynchronously
+   */
   sentSuccess: Scalars['Boolean']['output'];
 }
 
 export interface InviteUserType {
   __typename?: 'InviteUserType';
-  /**
-   * User accepted
-   * @deprecated Use `status` instead
-   */
-  accepted: Scalars['Boolean']['output'];
   /** User avatar url */
   avatarUrl: Maybe<Scalars['String']['output']>;
   /**
@@ -945,6 +1247,7 @@ export interface License {
   quantity: Scalars['Int']['output'];
   recurring: SubscriptionRecurring;
   validatedAt: Scalars['DateTime']['output'];
+  variant: Maybe<SubscriptionVariant>;
 }
 
 export interface LimitedUserType {
@@ -1035,6 +1338,8 @@ export interface Mutation {
   addContextDoc: CopilotContextDoc;
   /** add a file to context */
   addContextFile: CopilotContextFile;
+  /** Update workspace embedding files */
+  addWorkspaceEmbeddingFiles: CopilotWorkspaceFile;
   addWorkspaceFeature: Scalars['Boolean']['output'];
   approveMember: Scalars['Boolean']['output'];
   /** Ban an user */
@@ -1049,6 +1354,7 @@ export interface Mutation {
   createChangePasswordUrl: Scalars['String']['output'];
   /** Create a subscription checkout link of stripe */
   createCheckoutSession: Scalars['String']['output'];
+  createComment: CommentObjectType;
   /** Create a context session */
   createCopilotContext: Scalars['String']['output'];
   /** Create a chat message */
@@ -1060,6 +1366,7 @@ export interface Mutation {
   /** Create a stripe customer portal to manage payment methods */
   createCustomerPortal: Scalars['String']['output'];
   createInviteLink: InviteLink;
+  createReply: ReplyObjectType;
   createSelfhostWorkspaceCustomerPortal: Scalars['String']['output'];
   /** Create a new user */
   createUser: UserType;
@@ -1068,6 +1375,10 @@ export interface Mutation {
   deactivateLicense: Scalars['Boolean']['output'];
   deleteAccount: DeleteAccount;
   deleteBlob: Scalars['Boolean']['output'];
+  /** Delete a comment */
+  deleteComment: Scalars['Boolean']['output'];
+  /** Delete a reply */
+  deleteReply: Scalars['Boolean']['output'];
   /** Delete a user account */
   deleteUser: DeleteAccount;
   deleteWorkspace: Scalars['Boolean']['output'];
@@ -1080,8 +1391,10 @@ export interface Mutation {
   grantMember: Scalars['Boolean']['output'];
   /** import users */
   importUsers: Array<UserImportResultType>;
-  invite: Scalars['String']['output'];
+  installLicense: License;
+  /** @deprecated use [inviteMembers] instead */
   inviteBatch: Array<InviteResult>;
+  inviteMembers: Array<InviteResult>;
   leaveWorkspace: Scalars['Boolean']['output'];
   /** mention user in a doc */
   mentionUser: Scalars['ID']['output'];
@@ -1090,6 +1403,8 @@ export interface Mutation {
   publishPage: DocType;
   /** queue workspace doc embedding */
   queueWorkspaceEmbedding: Scalars['Boolean']['output'];
+  /** mark all notifications as read */
+  readAllNotifications: Scalars['Boolean']['output'];
   /** mark notification as read */
   readNotification: Scalars['Boolean']['output'];
   recoverDoc: Scalars['DateTime']['output'];
@@ -1102,12 +1417,18 @@ export interface Mutation {
   removeContextDoc: Scalars['Boolean']['output'];
   /** remove a file from context */
   removeContextFile: Scalars['Boolean']['output'];
+  /** Remove workspace embedding files */
+  removeWorkspaceEmbeddingFiles: Scalars['Boolean']['output'];
   removeWorkspaceFeature: Scalars['Boolean']['output'];
+  /** Resolve a comment or not */
+  resolveComment: Scalars['Boolean']['output'];
   resumeSubscription: SubscriptionType;
   retryAudioTranscription: Maybe<TranscriptionResultType>;
+  /** @deprecated use [revokeMember] instead */
   revoke: Scalars['Boolean']['output'];
   revokeDocUserRoles: Scalars['Boolean']['output'];
   revokeInviteLink: Scalars['Boolean']['output'];
+  revokeMember: Scalars['Boolean']['output'];
   revokePublicDoc: DocType;
   /** @deprecated use revokePublicDoc instead */
   revokePublicPage: DocType;
@@ -1119,8 +1440,14 @@ export interface Mutation {
   sendVerifyEmail: Scalars['Boolean']['output'];
   setBlob: Scalars['String']['output'];
   submitAudioTranscription: Maybe<TranscriptionResultType>;
+  /** Trigger cleanup of trashed doc embeddings */
+  triggerCleanupTrashedDocEmbeddings: Scalars['Boolean']['output'];
+  /** Trigger generate missing titles cron job */
+  triggerGenerateTitleCron: Scalars['Boolean']['output'];
   /** update app configuration */
   updateAppConfig: Scalars['JSONObject']['output'];
+  /** Update a comment content */
+  updateComment: Scalars['Boolean']['output'];
   /** Update a copilot prompt */
   updateCopilotPrompt: CopilotPromptType;
   /** Update a chat session */
@@ -1128,6 +1455,8 @@ export interface Mutation {
   updateDocDefaultRole: Scalars['Boolean']['output'];
   updateDocUserRole: Scalars['Boolean']['output'];
   updateProfile: UserType;
+  /** Update a reply content */
+  updateReply: Scalars['Boolean']['output'];
   /** Update user settings */
   updateSettings: Scalars['Boolean']['output'];
   updateSubscriptionRecurring: SubscriptionType;
@@ -1137,15 +1466,21 @@ export interface Mutation {
   updateUserFeatures: Array<FeatureType>;
   /** Update workspace */
   updateWorkspace: WorkspaceType;
+  /** Update ignored docs */
+  updateWorkspaceEmbeddingIgnoredDocs: Scalars['Int']['output'];
   /** Upload user avatar */
   uploadAvatar: UserType;
+  /** Upload a comment attachment and return the access url */
+  uploadCommentAttachment: Scalars['String']['output'];
+  /** validate app configuration */
+  validateAppConfig: Array<AppConfigValidateResult>;
   verifyEmail: Scalars['Boolean']['output'];
 }
 
 export interface MutationAcceptInviteByIdArgs {
   inviteId: Scalars['String']['input'];
   sendAcceptMail?: InputMaybe<Scalars['Boolean']['input']>;
-  workspaceId: Scalars['String']['input'];
+  workspaceId?: InputMaybe<Scalars['String']['input']>;
 }
 
 export interface MutationActivateLicenseArgs {
@@ -1164,6 +1499,11 @@ export interface MutationAddContextDocArgs {
 export interface MutationAddContextFileArgs {
   content: Scalars['Upload']['input'];
   options: AddContextFileInput;
+}
+
+export interface MutationAddWorkspaceEmbeddingFilesArgs {
+  blob: Scalars['Upload']['input'];
+  workspaceId: Scalars['String']['input'];
 }
 
 export interface MutationAddWorkspaceFeatureArgs {
@@ -1214,6 +1554,10 @@ export interface MutationCreateCheckoutSessionArgs {
   input: CreateCheckoutSessionInput;
 }
 
+export interface MutationCreateCommentArgs {
+  input: CommentCreateInput;
+}
+
 export interface MutationCreateCopilotContextArgs {
   sessionId: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
@@ -1234,6 +1578,10 @@ export interface MutationCreateCopilotSessionArgs {
 export interface MutationCreateInviteLinkArgs {
   expireTime: WorkspaceInviteLinkExpireTime;
   workspaceId: Scalars['String']['input'];
+}
+
+export interface MutationCreateReplyArgs {
+  input: ReplyCreateInput;
 }
 
 export interface MutationCreateSelfhostWorkspaceCustomerPortalArgs {
@@ -1257,6 +1605,14 @@ export interface MutationDeleteBlobArgs {
   key?: InputMaybe<Scalars['String']['input']>;
   permanently?: Scalars['Boolean']['input'];
   workspaceId: Scalars['String']['input'];
+}
+
+export interface MutationDeleteCommentArgs {
+  id: Scalars['String']['input'];
+}
+
+export interface MutationDeleteReplyArgs {
+  id: Scalars['String']['input'];
 }
 
 export interface MutationDeleteUserArgs {
@@ -1293,16 +1649,19 @@ export interface MutationImportUsersArgs {
   input: ImportUsersInput;
 }
 
-export interface MutationInviteArgs {
-  email: Scalars['String']['input'];
-  permission?: InputMaybe<Permission>;
-  sendInviteMail?: InputMaybe<Scalars['Boolean']['input']>;
+export interface MutationInstallLicenseArgs {
+  license: Scalars['Upload']['input'];
   workspaceId: Scalars['String']['input'];
 }
 
 export interface MutationInviteBatchArgs {
   emails: Array<Scalars['String']['input']>;
   sendInviteMail?: InputMaybe<Scalars['Boolean']['input']>;
+  workspaceId: Scalars['String']['input'];
+}
+
+export interface MutationInviteMembersArgs {
+  emails: Array<Scalars['String']['input']>;
   workspaceId: Scalars['String']['input'];
 }
 
@@ -1359,9 +1718,18 @@ export interface MutationRemoveContextFileArgs {
   options: RemoveContextFileInput;
 }
 
+export interface MutationRemoveWorkspaceEmbeddingFilesArgs {
+  fileId: Scalars['String']['input'];
+  workspaceId: Scalars['String']['input'];
+}
+
 export interface MutationRemoveWorkspaceFeatureArgs {
   feature: FeatureType;
   workspaceId: Scalars['String']['input'];
+}
+
+export interface MutationResolveCommentArgs {
+  input: CommentResolveInput;
 }
 
 export interface MutationResumeSubscriptionArgs {
@@ -1385,6 +1753,11 @@ export interface MutationRevokeDocUserRolesArgs {
 }
 
 export interface MutationRevokeInviteLinkArgs {
+  workspaceId: Scalars['String']['input'];
+}
+
+export interface MutationRevokeMemberArgs {
+  userId: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
 }
 
@@ -1443,6 +1816,10 @@ export interface MutationUpdateAppConfigArgs {
   updates: Array<UpdateAppConfigInput>;
 }
 
+export interface MutationUpdateCommentArgs {
+  input: CommentUpdateInput;
+}
+
 export interface MutationUpdateCopilotPromptArgs {
   messages: Array<CopilotPromptMessageInput>;
   name: Scalars['String']['input'];
@@ -1462,6 +1839,10 @@ export interface MutationUpdateDocUserRoleArgs {
 
 export interface MutationUpdateProfileArgs {
   input: UpdateUserInput;
+}
+
+export interface MutationUpdateReplyArgs {
+  input: ReplyUpdateInput;
 }
 
 export interface MutationUpdateSettingsArgs {
@@ -1489,12 +1870,38 @@ export interface MutationUpdateWorkspaceArgs {
   input: UpdateWorkspaceInput;
 }
 
+export interface MutationUpdateWorkspaceEmbeddingIgnoredDocsArgs {
+  add?: InputMaybe<Array<Scalars['String']['input']>>;
+  remove?: InputMaybe<Array<Scalars['String']['input']>>;
+  workspaceId: Scalars['String']['input'];
+}
+
 export interface MutationUploadAvatarArgs {
   avatar: Scalars['Upload']['input'];
 }
 
+export interface MutationUploadCommentAttachmentArgs {
+  attachment: Scalars['Upload']['input'];
+  docId: Scalars['String']['input'];
+  workspaceId: Scalars['String']['input'];
+}
+
+export interface MutationValidateAppConfigArgs {
+  updates: Array<UpdateAppConfigInput>;
+}
+
 export interface MutationVerifyEmailArgs {
   token: Scalars['String']['input'];
+}
+
+export interface NoCopilotProviderAvailableDataType {
+  __typename?: 'NoCopilotProviderAvailableDataType';
+  modelId: Scalars['String']['output'];
+}
+
+export interface NoMoreSeatDataType {
+  __typename?: 'NoMoreSeatDataType';
+  spaceId: Scalars['String']['output'];
 }
 
 export interface NotInSpaceDataType {
@@ -1538,6 +1945,8 @@ export interface NotificationObjectTypeEdge {
 
 /** Notification type */
 export enum NotificationType {
+  Comment = 'Comment',
+  CommentMention = 'CommentMention',
   Invitation = 'Invitation',
   InvitationAccepted = 'InvitationAccepted',
   InvitationBlocked = 'InvitationBlocked',
@@ -1558,6 +1967,7 @@ export interface NotificationWorkspaceType {
 }
 
 export enum OAuthProviderType {
+  Apple = 'Apple',
   GitHub = 'GitHub',
   Google = 'Google',
   OIDC = 'OIDC',
@@ -1571,9 +1981,51 @@ export interface PageInfo {
   startCursor: Maybe<Scalars['String']['output']>;
 }
 
+export interface PaginatedCommentChangeObjectType {
+  __typename?: 'PaginatedCommentChangeObjectType';
+  edges: Array<CommentChangeObjectTypeEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+}
+
+export interface PaginatedCommentObjectType {
+  __typename?: 'PaginatedCommentObjectType';
+  edges: Array<CommentObjectTypeEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+}
+
+export interface PaginatedCopilotHistoriesType {
+  __typename?: 'PaginatedCopilotHistoriesType';
+  edges: Array<CopilotHistoriesTypeEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+}
+
+export interface PaginatedCopilotWorkspaceFileType {
+  __typename?: 'PaginatedCopilotWorkspaceFileType';
+  edges: Array<CopilotWorkspaceFileTypeEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+}
+
+export interface PaginatedDocType {
+  __typename?: 'PaginatedDocType';
+  edges: Array<DocTypeEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+}
+
 export interface PaginatedGrantedDocUserType {
   __typename?: 'PaginatedGrantedDocUserType';
   edges: Array<GrantedDocUserTypeEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+}
+
+export interface PaginatedIgnoredDocsType {
+  __typename?: 'PaginatedIgnoredDocsType';
+  edges: Array<CopilotWorkspaceIgnoredDocTypeEdge>;
   pageInfo: PageInfo;
   totalCount: Scalars['Int']['output'];
 }
@@ -1625,12 +2077,14 @@ export interface Query {
   __typename?: 'Query';
   /** get the whole app configuration */
   appConfig: Scalars['JSONObject']['output'];
+  /** Apply updates to a doc using LLM and return the merged markdown. */
+  applyDocUpdates: Scalars['String']['output'];
   /** @deprecated use `user.quotaUsage` instead */
   collectAllBlobSizes: WorkspaceBlobSizes;
   /** Get current user */
   currentUser: Maybe<UserType>;
   error: ErrorDataUnion;
-  /** send workspace invitation */
+  /** get workspace invitation info */
   getInviteInfo: InvitationType;
   /**
    * Get is admin of workspace
@@ -1670,6 +2124,13 @@ export interface Query {
   workspaceRolePermissions: WorkspaceRolePermissions;
   /** Get all accessible workspaces for current user */
   workspaces: Array<WorkspaceType>;
+}
+
+export interface QueryApplyDocUpdatesArgs {
+  docId: Scalars['String']['input'];
+  op: Scalars['String']['input'];
+  updates: Scalars['String']['input'];
+  workspaceId: Scalars['String']['input'];
 }
 
 export interface QueryErrorArgs {
@@ -1725,14 +2186,20 @@ export interface QueryChatHistoriesInput {
   fork?: InputMaybe<Scalars['Boolean']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   messageOrder?: InputMaybe<ChatHistoryOrder>;
+  pinned?: InputMaybe<Scalars['Boolean']['input']>;
   sessionId?: InputMaybe<Scalars['String']['input']>;
   sessionOrder?: InputMaybe<ChatHistoryOrder>;
   skip?: InputMaybe<Scalars['Int']['input']>;
+  withMessages?: InputMaybe<Scalars['Boolean']['input']>;
   withPrompt?: InputMaybe<Scalars['Boolean']['input']>;
 }
 
 export interface QueryChatSessionsInput {
   action?: InputMaybe<Scalars['Boolean']['input']>;
+  fork?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  pinned?: InputMaybe<Scalars['Boolean']['input']>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
 }
 
 export interface QueryTooLongDataType {
@@ -1769,6 +2236,34 @@ export interface RemoveContextFileInput {
   fileId: Scalars['String']['input'];
 }
 
+export interface ReplyCreateInput {
+  commentId: Scalars['ID']['input'];
+  content: Scalars['JSONObject']['input'];
+  docMode: DocMode;
+  docTitle: Scalars['String']['input'];
+  /** The mention user ids, if not provided, the comment reply will not be mentioned */
+  mentions?: InputMaybe<Array<Scalars['String']['input']>>;
+}
+
+export interface ReplyObjectType {
+  __typename?: 'ReplyObjectType';
+  commentId: Scalars['ID']['output'];
+  /** The content of the reply */
+  content: Scalars['JSONObject']['output'];
+  /** The created at time of the reply */
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  /** The updated at time of the reply */
+  updatedAt: Scalars['DateTime']['output'];
+  /** The user who created the reply */
+  user: PublicUserType;
+}
+
+export interface ReplyUpdateInput {
+  content: Scalars['JSONObject']['input'];
+  id: Scalars['ID']['input'];
+}
+
 export interface RevokeDocUserRoleInput {
   docId: Scalars['String']['input'];
   userId: Scalars['String']['input'];
@@ -1785,8 +2280,108 @@ export interface SameSubscriptionRecurringDataType {
   recurring: Scalars['String']['output'];
 }
 
+export interface SearchDocObjectType {
+  __typename?: 'SearchDocObjectType';
+  blockId: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  createdByUser: Maybe<PublicUserType>;
+  docId: Scalars['String']['output'];
+  highlight: Scalars['String']['output'];
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  updatedByUser: Maybe<PublicUserType>;
+}
+
+export interface SearchDocsInput {
+  keyword: Scalars['String']['input'];
+  /** Limit the number of docs to return, default is 20 */
+  limit?: InputMaybe<Scalars['Int']['input']>;
+}
+
+export interface SearchHighlight {
+  before: Scalars['String']['input'];
+  end: Scalars['String']['input'];
+  field: Scalars['String']['input'];
+}
+
+export interface SearchInput {
+  options: SearchOptions;
+  query: SearchQuery;
+  table: SearchTable;
+}
+
+export interface SearchNodeObjectType {
+  __typename?: 'SearchNodeObjectType';
+  /** The search result fields, see UnionSearchItemObjectType */
+  fields: Scalars['JSONObject']['output'];
+  /** The search result fields, see UnionSearchItemObjectType */
+  highlights: Maybe<Scalars['JSONObject']['output']>;
+}
+
+export interface SearchOptions {
+  fields: Array<Scalars['String']['input']>;
+  highlights?: InputMaybe<Array<SearchHighlight>>;
+  pagination?: InputMaybe<SearchPagination>;
+}
+
+export interface SearchPagination {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  skip?: InputMaybe<Scalars['Int']['input']>;
+}
+
+export interface SearchQuery {
+  boost?: InputMaybe<Scalars['Float']['input']>;
+  field?: InputMaybe<Scalars['String']['input']>;
+  match?: InputMaybe<Scalars['String']['input']>;
+  occur?: InputMaybe<SearchQueryOccur>;
+  queries?: InputMaybe<Array<SearchQuery>>;
+  query?: InputMaybe<SearchQuery>;
+  type: SearchQueryType;
+}
+
+/** Search query occur */
+export enum SearchQueryOccur {
+  must = 'must',
+  must_not = 'must_not',
+  should = 'should',
+}
+
+/** Search query type */
+export enum SearchQueryType {
+  all = 'all',
+  boolean = 'boolean',
+  boost = 'boost',
+  exists = 'exists',
+  match = 'match',
+}
+
+export interface SearchResultObjectType {
+  __typename?: 'SearchResultObjectType';
+  nodes: Array<SearchNodeObjectType>;
+  pagination: SearchResultPagination;
+}
+
+export interface SearchResultPagination {
+  __typename?: 'SearchResultPagination';
+  count: Scalars['Int']['output'];
+  hasMore: Scalars['Boolean']['output'];
+  nextCursor: Maybe<Scalars['String']['output']>;
+}
+
+/** Search table */
+export enum SearchTable {
+  block = 'block',
+  doc = 'doc',
+}
+
 export interface ServerConfigType {
   __typename?: 'ServerConfigType';
+  /**
+   * Whether allow guest users to create demo workspaces.
+   * @deprecated This field is deprecated, please use `features` instead. Will be removed in 0.25.0
+   */
+  allowGuestDemoWorkspace: Scalars['Boolean']['output'];
   /** fetch latest available upgradable release of server */
   availableUpgrade: Maybe<ReleaseVersionType>;
   /** Features for user that can be configured */
@@ -1815,7 +2410,11 @@ export enum ServerDeploymentType {
 
 export enum ServerFeature {
   Captcha = 'Captcha',
+  Comment = 'Comment',
   Copilot = 'Copilot',
+  CopilotEmbedding = 'CopilotEmbedding',
+  Indexer = 'Indexer',
+  LocalWorkspace = 'LocalWorkspace',
   OAuth = 'OAuth',
   Payment = 'Payment',
 }
@@ -1838,6 +2437,16 @@ export interface SpaceOwnerNotFoundDataType {
 export interface SpaceShouldHaveOnlyOneOwnerDataType {
   __typename?: 'SpaceShouldHaveOnlyOneOwnerDataType';
   spaceId: Scalars['String']['output'];
+}
+
+export interface StreamObject {
+  __typename?: 'StreamObject';
+  args: Maybe<Scalars['JSON']['output']>;
+  result: Maybe<Scalars['JSON']['output']>;
+  textDelta: Maybe<Scalars['String']['output']>;
+  toolCallId: Maybe<Scalars['String']['output']>;
+  toolName: Maybe<Scalars['String']['output']>;
+  type: Scalars['String']['output'];
 }
 
 export interface SubscriptionAlreadyExistsDataType {
@@ -1930,6 +2539,7 @@ export interface TranscriptionItemType {
 
 export interface TranscriptionResultType {
   __typename?: 'TranscriptionResultType';
+  actions: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   status: AiJobStatus;
   summary: Maybe<Scalars['String']['output']>;
@@ -1969,8 +2579,12 @@ export interface UpdateAppConfigInput {
 }
 
 export interface UpdateChatSessionInput {
+  /** The workspace id of the session */
+  docId?: InputMaybe<Scalars['String']['input']>;
+  /** Whether to pin the session */
+  pinned?: InputMaybe<Scalars['Boolean']['input']>;
   /** The prompt name to use for the session */
-  promptName: Scalars['String']['input'];
+  promptName?: InputMaybe<Scalars['String']['input']>;
   sessionId: Scalars['String']['input'];
 }
 
@@ -1993,6 +2607,8 @@ export interface UpdateUserInput {
 }
 
 export interface UpdateUserSettingsInput {
+  /** Receive comment email */
+  receiveCommentEmail?: InputMaybe<Scalars['Boolean']['input']>;
   /** Receive invitation email */
   receiveInvitationEmail?: InputMaybe<Scalars['Boolean']['input']>;
   /** Receive mention email */
@@ -2002,6 +2618,8 @@ export interface UpdateUserSettingsInput {
 export interface UpdateWorkspaceInput {
   /** Enable AI */
   enableAi?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Enable doc embedding */
+  enableDocEmbedding?: InputMaybe<Scalars['Boolean']['input']>;
   /** Enable url previous when sharing */
   enableUrlPreview?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
@@ -2050,6 +2668,8 @@ export interface UserQuotaUsageType {
 
 export interface UserSettingsType {
   __typename?: 'UserSettingsType';
+  /** Receive comment email */
+  receiveCommentEmail: Scalars['Boolean']['output'];
   /** Receive invitation email */
   receiveInvitationEmail: Scalars['Boolean']['output'];
   /** Receive mention email */
@@ -2124,6 +2744,14 @@ export interface WorkspaceBlobSizes {
   size: Scalars['SafeInt']['output'];
 }
 
+export interface WorkspaceDocMeta {
+  __typename?: 'WorkspaceDocMeta';
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: Maybe<EditorType>;
+  updatedAt: Scalars['DateTime']['output'];
+  updatedBy: Maybe<EditorType>;
+}
+
 /** Workspace invite link expire time */
 export enum WorkspaceInviteLinkExpireTime {
   OneDay = 'OneDay',
@@ -2135,23 +2763,11 @@ export enum WorkspaceInviteLinkExpireTime {
 /** Member invite status in workspace */
 export enum WorkspaceMemberStatus {
   Accepted = 'Accepted',
+  AllocatingSeat = 'AllocatingSeat',
   NeedMoreSeat = 'NeedMoreSeat',
   NeedMoreSeatAndReview = 'NeedMoreSeatAndReview',
   Pending = 'Pending',
   UnderReview = 'UnderReview',
-}
-
-export interface WorkspaceMembersExceedLimitToDowngradeDataType {
-  __typename?: 'WorkspaceMembersExceedLimitToDowngradeDataType';
-  limit: Scalars['Int']['output'];
-}
-
-export interface WorkspacePageMeta {
-  __typename?: 'WorkspacePageMeta';
-  createdAt: Scalars['DateTime']['output'];
-  createdBy: Maybe<EditorType>;
-  updatedAt: Scalars['DateTime']['output'];
-  updatedBy: Maybe<EditorType>;
 }
 
 export interface WorkspacePermissionNotFoundDataType {
@@ -2190,6 +2806,7 @@ export interface WorkspaceQuotaHumanReadableType {
   memberCount: Scalars['String']['output'];
   memberLimit: Scalars['String']['output'];
   name: Scalars['String']['output'];
+  overcapacityMemberCount: Scalars['String']['output'];
   storageQuota: Scalars['String']['output'];
   storageQuotaUsed: Scalars['String']['output'];
 }
@@ -2202,6 +2819,7 @@ export interface WorkspaceQuotaType {
   memberCount: Scalars['Int']['output'];
   memberLimit: Scalars['Int']['output'];
   name: Scalars['String']['output'];
+  overcapacityMemberCount: Scalars['Int']['output'];
   storageQuota: Scalars['SafeInt']['output'];
   /** @deprecated use `usedStorageQuota` instead */
   usedSize: Scalars['SafeInt']['output'];
@@ -2216,16 +2834,26 @@ export interface WorkspaceRolePermissions {
 
 export interface WorkspaceType {
   __typename?: 'WorkspaceType';
+  /** Search a specific table with aggregate */
+  aggregate: AggregateResultObjectType;
   /** List blobs of workspace */
   blobs: Array<ListedBlob>;
   /** Blobs size of workspace */
   blobsSize: Scalars['Int']['output'];
+  /** Get comment changes of a doc */
+  commentChanges: PaginatedCommentChangeObjectType;
+  /** Get comments of a doc */
+  comments: PaginatedCommentObjectType;
   /** Workspace created date */
   createdAt: Scalars['DateTime']['output'];
   /** Get get with given id */
   doc: DocType;
+  docs: PaginatedDocType;
+  embedding: CopilotWorkspaceConfig;
   /** Enable AI */
   enableAi: Scalars['Boolean']['output'];
+  /** Enable doc embedding */
+  enableDocEmbedding: Scalars['Boolean']['output'];
   /** Enable url previous when sharing */
   enableUrlPreview: Scalars['Boolean']['output'];
   histories: Array<DocHistoryType>;
@@ -2245,8 +2873,11 @@ export interface WorkspaceType {
   members: Array<InviteUserType>;
   /** Owner of workspace */
   owner: UserType;
-  /** Cloud page metadata of workspace */
-  pageMeta: WorkspacePageMeta;
+  /**
+   * Cloud page metadata of workspace
+   * @deprecated use [WorkspaceType.doc] instead
+   */
+  pageMeta: WorkspaceDocMeta;
   /** map of action permissions */
   permissions: WorkspacePermissions;
   /** is Public workspace */
@@ -2262,16 +2893,40 @@ export interface WorkspaceType {
   publicPages: Array<DocType>;
   /** quota of workspace */
   quota: WorkspaceQuotaType;
+  /** Get recently updated docs of a workspace */
+  recentlyUpdatedDocs: PaginatedDocType;
   /** Role of current signed in user in workspace */
   role: Permission;
+  /** Search a specific table */
+  search: SearchResultObjectType;
+  /** Search docs by keyword */
+  searchDocs: Array<SearchDocObjectType>;
   /** The team subscription of the workspace, if exists. */
   subscription: Maybe<SubscriptionType>;
   /** if workspace is team workspace */
   team: Scalars['Boolean']['output'];
 }
 
+export interface WorkspaceTypeAggregateArgs {
+  input: AggregateInput;
+}
+
+export interface WorkspaceTypeCommentChangesArgs {
+  docId: Scalars['String']['input'];
+  pagination: PaginationInput;
+}
+
+export interface WorkspaceTypeCommentsArgs {
+  docId: Scalars['String']['input'];
+  pagination?: InputMaybe<PaginationInput>;
+}
+
 export interface WorkspaceTypeDocArgs {
   docId: Scalars['String']['input'];
+}
+
+export interface WorkspaceTypeDocsArgs {
+  pagination: PaginationInput;
 }
 
 export interface WorkspaceTypeHistoriesArgs {
@@ -2299,6 +2954,18 @@ export interface WorkspaceTypePublicPageArgs {
   pageId: Scalars['String']['input'];
 }
 
+export interface WorkspaceTypeRecentlyUpdatedDocsArgs {
+  pagination: PaginationInput;
+}
+
+export interface WorkspaceTypeSearchArgs {
+  input: SearchInput;
+}
+
+export interface WorkspaceTypeSearchDocsArgs {
+  input: SearchDocsInput;
+}
+
 export interface WorkspaceUserType {
   __typename?: 'WorkspaceUserType';
   avatarUrl: Maybe<Scalars['String']['output']>;
@@ -2318,20 +2985,6 @@ export interface TokenType {
   sessionToken: Maybe<Scalars['String']['output']>;
   token: Scalars['String']['output'];
 }
-
-export type ActivateLicenseMutationVariables = Exact<{
-  workspaceId: Scalars['String']['input'];
-  license: Scalars['String']['input'];
-}>;
-
-export type ActivateLicenseMutation = {
-  __typename?: 'Mutation';
-  activateLicense: {
-    __typename?: 'License';
-    installedAt: string;
-    validatedAt: string;
-  };
-};
 
 export type AdminServerConfigQueryVariables = Exact<{ [key: string]: never }>;
 
@@ -2389,7 +3042,6 @@ export type GetPromptsQuery = {
     action: string | null;
     config: {
       __typename?: 'CopilotPromptConfigType';
-      jsonMode: boolean | null;
       frequencyPenalty: number | null;
       presencePenalty: number | null;
       temperature: number | null;
@@ -2418,7 +3070,6 @@ export type UpdatePromptMutation = {
     action: string | null;
     config: {
       __typename?: 'CopilotPromptConfigType';
-      jsonMode: boolean | null;
       frequencyPenalty: number | null;
       presencePenalty: number | null;
       temperature: number | null;
@@ -2488,10 +3139,6 @@ export type GetUserByEmailQuery = {
   } | null;
 };
 
-export type GetUsersCountQueryVariables = Exact<{ [key: string]: never }>;
-
-export type GetUsersCountQuery = { __typename?: 'Query'; usersCount: number };
-
 export type ImportUsersMutationVariables = Exact<{
   input: ImportUsersInput;
 }>;
@@ -2510,6 +3157,7 @@ export type ListUsersQueryVariables = Exact<{
 
 export type ListUsersQuery = {
   __typename?: 'Query';
+  usersCount: number;
   users: Array<{
     __typename?: 'UserType';
     id: string;
@@ -2569,6 +3217,22 @@ export type UpdateAppConfigMutationVariables = Exact<{
 export type UpdateAppConfigMutation = {
   __typename?: 'Mutation';
   updateAppConfig: any;
+};
+
+export type ValidateConfigMutationVariables = Exact<{
+  updates: Array<UpdateAppConfigInput> | UpdateAppConfigInput;
+}>;
+
+export type ValidateConfigMutation = {
+  __typename?: 'Mutation';
+  validateAppConfig: Array<{
+    __typename?: 'AppConfigValidateResult';
+    module: string;
+    key: string;
+    value: Record<string, string>;
+    valid: boolean;
+    error: string | null;
+  }>;
 };
 
 export type DeleteBlobMutationVariables = Exact<{
@@ -2653,6 +3317,223 @@ export type ChangePasswordMutation = {
   changePassword: boolean;
 };
 
+export type ListCommentChangesQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: Scalars['String']['input'];
+  pagination: PaginationInput;
+}>;
+
+export type ListCommentChangesQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    commentChanges: {
+      __typename?: 'PaginatedCommentChangeObjectType';
+      totalCount: number;
+      edges: Array<{
+        __typename?: 'CommentChangeObjectTypeEdge';
+        cursor: string;
+        node: {
+          __typename?: 'CommentChangeObjectType';
+          action: CommentChangeAction;
+          id: string;
+          commentId: string | null;
+          item: any;
+        };
+      }>;
+      pageInfo: {
+        __typename?: 'PageInfo';
+        startCursor: string | null;
+        endCursor: string | null;
+        hasNextPage: boolean;
+        hasPreviousPage: boolean;
+      };
+    };
+  };
+};
+
+export type CreateCommentMutationVariables = Exact<{
+  input: CommentCreateInput;
+}>;
+
+export type CreateCommentMutation = {
+  __typename?: 'Mutation';
+  createComment: {
+    __typename?: 'CommentObjectType';
+    id: string;
+    content: any;
+    resolved: boolean;
+    createdAt: string;
+    updatedAt: string;
+    user: {
+      __typename?: 'PublicUserType';
+      id: string;
+      name: string;
+      avatarUrl: string | null;
+    };
+    replies: Array<{
+      __typename?: 'ReplyObjectType';
+      commentId: string;
+      id: string;
+      content: any;
+      createdAt: string;
+      updatedAt: string;
+      user: {
+        __typename?: 'PublicUserType';
+        id: string;
+        name: string;
+        avatarUrl: string | null;
+      };
+    }>;
+  };
+};
+
+export type DeleteCommentMutationVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+export type DeleteCommentMutation = {
+  __typename?: 'Mutation';
+  deleteComment: boolean;
+};
+
+export type ListCommentsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: Scalars['String']['input'];
+  pagination?: InputMaybe<PaginationInput>;
+}>;
+
+export type ListCommentsQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    comments: {
+      __typename?: 'PaginatedCommentObjectType';
+      totalCount: number;
+      edges: Array<{
+        __typename?: 'CommentObjectTypeEdge';
+        cursor: string;
+        node: {
+          __typename?: 'CommentObjectType';
+          id: string;
+          content: any;
+          resolved: boolean;
+          createdAt: string;
+          updatedAt: string;
+          user: {
+            __typename?: 'PublicUserType';
+            id: string;
+            name: string;
+            avatarUrl: string | null;
+          };
+          replies: Array<{
+            __typename?: 'ReplyObjectType';
+            commentId: string;
+            id: string;
+            content: any;
+            createdAt: string;
+            updatedAt: string;
+            user: {
+              __typename?: 'PublicUserType';
+              id: string;
+              name: string;
+              avatarUrl: string | null;
+            };
+          }>;
+        };
+      }>;
+      pageInfo: {
+        __typename?: 'PageInfo';
+        startCursor: string | null;
+        endCursor: string | null;
+        hasNextPage: boolean;
+        hasPreviousPage: boolean;
+      };
+    };
+  };
+};
+
+export type CreateReplyMutationVariables = Exact<{
+  input: ReplyCreateInput;
+}>;
+
+export type CreateReplyMutation = {
+  __typename?: 'Mutation';
+  createReply: {
+    __typename?: 'ReplyObjectType';
+    commentId: string;
+    id: string;
+    content: any;
+    createdAt: string;
+    updatedAt: string;
+    user: {
+      __typename?: 'PublicUserType';
+      id: string;
+      name: string;
+      avatarUrl: string | null;
+    };
+  };
+};
+
+export type DeleteReplyMutationVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+export type DeleteReplyMutation = {
+  __typename?: 'Mutation';
+  deleteReply: boolean;
+};
+
+export type UpdateReplyMutationVariables = Exact<{
+  input: ReplyUpdateInput;
+}>;
+
+export type UpdateReplyMutation = {
+  __typename?: 'Mutation';
+  updateReply: boolean;
+};
+
+export type ResolveCommentMutationVariables = Exact<{
+  input: CommentResolveInput;
+}>;
+
+export type ResolveCommentMutation = {
+  __typename?: 'Mutation';
+  resolveComment: boolean;
+};
+
+export type UpdateCommentMutationVariables = Exact<{
+  input: CommentUpdateInput;
+}>;
+
+export type UpdateCommentMutation = {
+  __typename?: 'Mutation';
+  updateComment: boolean;
+};
+
+export type UploadCommentAttachmentMutationVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: Scalars['String']['input'];
+  attachment: Scalars['Upload']['input'];
+}>;
+
+export type UploadCommentAttachmentMutation = {
+  __typename?: 'Mutation';
+  uploadCommentAttachment: string;
+};
+
+export type ApplyDocUpdatesQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: Scalars['String']['input'];
+  op: Scalars['String']['input'];
+  updates: Scalars['String']['input'];
+}>;
+
+export type ApplyDocUpdatesQuery = {
+  __typename?: 'Query';
+  applyDocUpdates: string;
+};
+
 export type AddContextCategoryMutationVariables = Exact<{
   options: AddContextCategoryInput;
 }>;
@@ -2728,6 +3609,7 @@ export type AddContextFileMutation = {
     id: string;
     createdAt: number;
     name: string;
+    mimeType: string;
     chunkSize: number;
     error: string | null;
     status: ContextEmbedStatus;
@@ -2769,6 +3651,7 @@ export type ListContextObjectQuery = {
           __typename?: 'CopilotContextFile';
           id: string;
           name: string;
+          mimeType: string;
           blobId: string;
           chunkSize: number;
           error: string | null;
@@ -2817,7 +3700,7 @@ export type ListContextQuery = {
       __typename?: 'Copilot';
       contexts: Array<{
         __typename?: 'CopilotContext';
-        id: string;
+        id: string | null;
         workspaceId: string;
       }>;
     };
@@ -2825,9 +3708,11 @@ export type ListContextQuery = {
 };
 
 export type MatchContextQueryVariables = Exact<{
-  contextId: Scalars['String']['input'];
+  contextId?: InputMaybe<Scalars['String']['input']>;
+  workspaceId?: InputMaybe<Scalars['String']['input']>;
   content: Scalars['String']['input'];
   limit?: InputMaybe<Scalars['SafeInt']['input']>;
+  scopedThreshold?: InputMaybe<Scalars['Float']['input']>;
   threshold?: InputMaybe<Scalars['Float']['input']>;
 }>;
 
@@ -2842,6 +3727,9 @@ export type MatchContextQuery = {
         matchFiles: Array<{
           __typename?: 'ContextMatchedFileChunk';
           fileId: string;
+          blobId: string;
+          name: string;
+          mimeType: string;
           chunk: number;
           content: string;
           distance: number | null;
@@ -2859,9 +3747,12 @@ export type MatchContextQuery = {
 };
 
 export type MatchWorkspaceDocsQueryVariables = Exact<{
-  contextId: Scalars['String']['input'];
+  contextId?: InputMaybe<Scalars['String']['input']>;
+  workspaceId?: InputMaybe<Scalars['String']['input']>;
   content: Scalars['String']['input'];
   limit?: InputMaybe<Scalars['SafeInt']['input']>;
+  scopedThreshold?: InputMaybe<Scalars['Float']['input']>;
+  threshold?: InputMaybe<Scalars['Float']['input']>;
 }>;
 
 export type MatchWorkspaceDocsQuery = {
@@ -2885,9 +3776,12 @@ export type MatchWorkspaceDocsQuery = {
 };
 
 export type MatchFilesQueryVariables = Exact<{
-  contextId: Scalars['String']['input'];
+  contextId?: InputMaybe<Scalars['String']['input']>;
+  workspaceId?: InputMaybe<Scalars['String']['input']>;
   content: Scalars['String']['input'];
   limit?: InputMaybe<Scalars['SafeInt']['input']>;
+  scopedThreshold?: InputMaybe<Scalars['Float']['input']>;
+  threshold?: InputMaybe<Scalars['Float']['input']>;
 }>;
 
 export type MatchFilesQuery = {
@@ -2901,6 +3795,7 @@ export type MatchFilesQuery = {
         matchFiles: Array<{
           __typename?: 'ContextMatchedFileChunk';
           fileId: string;
+          blobId: string;
           chunk: number;
           content: string;
           distance: number | null;
@@ -2935,6 +3830,7 @@ export type QueueWorkspaceEmbeddingMutation = {
 
 export type GetCopilotHistoryIdsQueryVariables = Exact<{
   workspaceId: Scalars['String']['input'];
+  pagination: PaginationInput;
   docId?: InputMaybe<Scalars['String']['input']>;
   options?: InputMaybe<QueryChatHistoriesInput>;
 }>;
@@ -2945,22 +3841,229 @@ export type GetCopilotHistoryIdsQuery = {
     __typename?: 'UserType';
     copilot: {
       __typename?: 'Copilot';
-      histories: Array<{
-        __typename?: 'CopilotHistories';
-        sessionId: string;
-        messages: Array<{
-          __typename?: 'ChatMessage';
-          id: string | null;
-          role: string;
-          createdAt: string;
+      chats: {
+        __typename?: 'PaginatedCopilotHistoriesType';
+        pageInfo: {
+          __typename?: 'PageInfo';
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+          startCursor: string | null;
+          endCursor: string | null;
+        };
+        edges: Array<{
+          __typename?: 'CopilotHistoriesTypeEdge';
+          cursor: string;
+          node: {
+            __typename?: 'CopilotHistories';
+            sessionId: string;
+            pinned: boolean;
+            messages: Array<{
+              __typename?: 'ChatMessage';
+              id: string | null;
+              role: string;
+              createdAt: string;
+            }>;
+          };
         }>;
-      }>;
+      };
+    };
+  } | null;
+};
+
+export type GetCopilotDocSessionsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: Scalars['String']['input'];
+  pagination: PaginationInput;
+  options?: InputMaybe<QueryChatHistoriesInput>;
+}>;
+
+export type GetCopilotDocSessionsQuery = {
+  __typename?: 'Query';
+  currentUser: {
+    __typename?: 'UserType';
+    copilot: {
+      __typename?: 'Copilot';
+      chats: {
+        __typename?: 'PaginatedCopilotHistoriesType';
+        pageInfo: {
+          __typename?: 'PageInfo';
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+          startCursor: string | null;
+          endCursor: string | null;
+        };
+        edges: Array<{
+          __typename?: 'CopilotHistoriesTypeEdge';
+          cursor: string;
+          node: {
+            __typename?: 'CopilotHistories';
+            sessionId: string;
+            workspaceId: string;
+            docId: string | null;
+            parentSessionId: string | null;
+            promptName: string;
+            model: string;
+            optionalModels: Array<string>;
+            action: string | null;
+            pinned: boolean;
+            title: string | null;
+            tokens: number;
+            createdAt: string;
+            updatedAt: string;
+            messages: Array<{
+              __typename?: 'ChatMessage';
+              id: string | null;
+              role: string;
+              content: string;
+              attachments: Array<string> | null;
+              createdAt: string;
+              streamObjects: Array<{
+                __typename?: 'StreamObject';
+                type: string;
+                textDelta: string | null;
+                toolCallId: string | null;
+                toolName: string | null;
+                args: Record<string, string> | null;
+                result: Record<string, string> | null;
+              }> | null;
+            }>;
+          };
+        }>;
+      };
+    };
+  } | null;
+};
+
+export type GetCopilotPinnedSessionsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId?: InputMaybe<Scalars['String']['input']>;
+  messageOrder?: InputMaybe<ChatHistoryOrder>;
+  withPrompt?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+export type GetCopilotPinnedSessionsQuery = {
+  __typename?: 'Query';
+  currentUser: {
+    __typename?: 'UserType';
+    copilot: {
+      __typename?: 'Copilot';
+      chats: {
+        __typename?: 'PaginatedCopilotHistoriesType';
+        pageInfo: {
+          __typename?: 'PageInfo';
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+          startCursor: string | null;
+          endCursor: string | null;
+        };
+        edges: Array<{
+          __typename?: 'CopilotHistoriesTypeEdge';
+          cursor: string;
+          node: {
+            __typename?: 'CopilotHistories';
+            sessionId: string;
+            workspaceId: string;
+            docId: string | null;
+            parentSessionId: string | null;
+            promptName: string;
+            model: string;
+            optionalModels: Array<string>;
+            action: string | null;
+            pinned: boolean;
+            title: string | null;
+            tokens: number;
+            createdAt: string;
+            updatedAt: string;
+            messages: Array<{
+              __typename?: 'ChatMessage';
+              id: string | null;
+              role: string;
+              content: string;
+              attachments: Array<string> | null;
+              createdAt: string;
+              streamObjects: Array<{
+                __typename?: 'StreamObject';
+                type: string;
+                textDelta: string | null;
+                toolCallId: string | null;
+                toolName: string | null;
+                args: Record<string, string> | null;
+                result: Record<string, string> | null;
+              }> | null;
+            }>;
+          };
+        }>;
+      };
+    };
+  } | null;
+};
+
+export type GetCopilotWorkspaceSessionsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  pagination: PaginationInput;
+  options?: InputMaybe<QueryChatHistoriesInput>;
+}>;
+
+export type GetCopilotWorkspaceSessionsQuery = {
+  __typename?: 'Query';
+  currentUser: {
+    __typename?: 'UserType';
+    copilot: {
+      __typename?: 'Copilot';
+      chats: {
+        __typename?: 'PaginatedCopilotHistoriesType';
+        pageInfo: {
+          __typename?: 'PageInfo';
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+          startCursor: string | null;
+          endCursor: string | null;
+        };
+        edges: Array<{
+          __typename?: 'CopilotHistoriesTypeEdge';
+          cursor: string;
+          node: {
+            __typename?: 'CopilotHistories';
+            sessionId: string;
+            workspaceId: string;
+            docId: string | null;
+            parentSessionId: string | null;
+            promptName: string;
+            model: string;
+            optionalModels: Array<string>;
+            action: string | null;
+            pinned: boolean;
+            title: string | null;
+            tokens: number;
+            createdAt: string;
+            updatedAt: string;
+            messages: Array<{
+              __typename?: 'ChatMessage';
+              id: string | null;
+              role: string;
+              content: string;
+              attachments: Array<string> | null;
+              createdAt: string;
+              streamObjects: Array<{
+                __typename?: 'StreamObject';
+                type: string;
+                textDelta: string | null;
+                toolCallId: string | null;
+                toolName: string | null;
+                args: Record<string, string> | null;
+                result: Record<string, string> | null;
+              }> | null;
+            }>;
+          };
+        }>;
+      };
     };
   } | null;
 };
 
 export type GetCopilotHistoriesQueryVariables = Exact<{
   workspaceId: Scalars['String']['input'];
+  pagination: PaginationInput;
   docId?: InputMaybe<Scalars['String']['input']>;
   options?: InputMaybe<QueryChatHistoriesInput>;
 }>;
@@ -2971,21 +4074,53 @@ export type GetCopilotHistoriesQuery = {
     __typename?: 'UserType';
     copilot: {
       __typename?: 'Copilot';
-      histories: Array<{
-        __typename?: 'CopilotHistories';
-        sessionId: string;
-        tokens: number;
-        action: string | null;
-        createdAt: string;
-        messages: Array<{
-          __typename?: 'ChatMessage';
-          id: string | null;
-          role: string;
-          content: string;
-          attachments: Array<string> | null;
-          createdAt: string;
+      chats: {
+        __typename?: 'PaginatedCopilotHistoriesType';
+        pageInfo: {
+          __typename?: 'PageInfo';
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+          startCursor: string | null;
+          endCursor: string | null;
+        };
+        edges: Array<{
+          __typename?: 'CopilotHistoriesTypeEdge';
+          cursor: string;
+          node: {
+            __typename?: 'CopilotHistories';
+            sessionId: string;
+            workspaceId: string;
+            docId: string | null;
+            parentSessionId: string | null;
+            promptName: string;
+            model: string;
+            optionalModels: Array<string>;
+            action: string | null;
+            pinned: boolean;
+            title: string | null;
+            tokens: number;
+            createdAt: string;
+            updatedAt: string;
+            messages: Array<{
+              __typename?: 'ChatMessage';
+              id: string | null;
+              role: string;
+              content: string;
+              attachments: Array<string> | null;
+              createdAt: string;
+              streamObjects: Array<{
+                __typename?: 'StreamObject';
+                type: string;
+                textDelta: string | null;
+                toolCallId: string | null;
+                toolName: string | null;
+                args: Record<string, string> | null;
+                result: Record<string, string> | null;
+              }> | null;
+            }>;
+          };
         }>;
-      }>;
+      };
     };
   } | null;
 };
@@ -3020,6 +4155,7 @@ export type ClaimAudioTranscriptionMutation = {
     status: AiJobStatus;
     title: string | null;
     summary: string | null;
+    actions: string | null;
     transcription: Array<{
       __typename?: 'TranscriptionItemType';
       speaker: string;
@@ -3127,6 +4263,193 @@ export type ForkCopilotSessionMutation = {
   forkCopilotSession: string;
 };
 
+export type GetCopilotLatestDocSessionQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: Scalars['String']['input'];
+}>;
+
+export type GetCopilotLatestDocSessionQuery = {
+  __typename?: 'Query';
+  currentUser: {
+    __typename?: 'UserType';
+    copilot: {
+      __typename?: 'Copilot';
+      chats: {
+        __typename?: 'PaginatedCopilotHistoriesType';
+        pageInfo: {
+          __typename?: 'PageInfo';
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+          startCursor: string | null;
+          endCursor: string | null;
+        };
+        edges: Array<{
+          __typename?: 'CopilotHistoriesTypeEdge';
+          cursor: string;
+          node: {
+            __typename?: 'CopilotHistories';
+            sessionId: string;
+            workspaceId: string;
+            docId: string | null;
+            parentSessionId: string | null;
+            promptName: string;
+            model: string;
+            optionalModels: Array<string>;
+            action: string | null;
+            pinned: boolean;
+            title: string | null;
+            tokens: number;
+            createdAt: string;
+            updatedAt: string;
+            messages: Array<{
+              __typename?: 'ChatMessage';
+              id: string | null;
+              role: string;
+              content: string;
+              attachments: Array<string> | null;
+              createdAt: string;
+              streamObjects: Array<{
+                __typename?: 'StreamObject';
+                type: string;
+                textDelta: string | null;
+                toolCallId: string | null;
+                toolName: string | null;
+                args: Record<string, string> | null;
+                result: Record<string, string> | null;
+              }> | null;
+            }>;
+          };
+        }>;
+      };
+    };
+  } | null;
+};
+
+export type GetCopilotSessionQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  sessionId: Scalars['String']['input'];
+}>;
+
+export type GetCopilotSessionQuery = {
+  __typename?: 'Query';
+  currentUser: {
+    __typename?: 'UserType';
+    copilot: {
+      __typename?: 'Copilot';
+      chats: {
+        __typename?: 'PaginatedCopilotHistoriesType';
+        pageInfo: {
+          __typename?: 'PageInfo';
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+          startCursor: string | null;
+          endCursor: string | null;
+        };
+        edges: Array<{
+          __typename?: 'CopilotHistoriesTypeEdge';
+          cursor: string;
+          node: {
+            __typename?: 'CopilotHistories';
+            sessionId: string;
+            workspaceId: string;
+            docId: string | null;
+            parentSessionId: string | null;
+            promptName: string;
+            model: string;
+            optionalModels: Array<string>;
+            action: string | null;
+            pinned: boolean;
+            title: string | null;
+            tokens: number;
+            createdAt: string;
+            updatedAt: string;
+            messages: Array<{
+              __typename?: 'ChatMessage';
+              id: string | null;
+              role: string;
+              content: string;
+              attachments: Array<string> | null;
+              createdAt: string;
+              streamObjects: Array<{
+                __typename?: 'StreamObject';
+                type: string;
+                textDelta: string | null;
+                toolCallId: string | null;
+                toolName: string | null;
+                args: Record<string, string> | null;
+                result: Record<string, string> | null;
+              }> | null;
+            }>;
+          };
+        }>;
+      };
+    };
+  } | null;
+};
+
+export type GetCopilotRecentSessionsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+export type GetCopilotRecentSessionsQuery = {
+  __typename?: 'Query';
+  currentUser: {
+    __typename?: 'UserType';
+    copilot: {
+      __typename?: 'Copilot';
+      chats: {
+        __typename?: 'PaginatedCopilotHistoriesType';
+        pageInfo: {
+          __typename?: 'PageInfo';
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+          startCursor: string | null;
+          endCursor: string | null;
+        };
+        edges: Array<{
+          __typename?: 'CopilotHistoriesTypeEdge';
+          cursor: string;
+          node: {
+            __typename?: 'CopilotHistories';
+            sessionId: string;
+            workspaceId: string;
+            docId: string | null;
+            parentSessionId: string | null;
+            promptName: string;
+            model: string;
+            optionalModels: Array<string>;
+            action: string | null;
+            pinned: boolean;
+            title: string | null;
+            tokens: number;
+            createdAt: string;
+            updatedAt: string;
+            messages: Array<{
+              __typename?: 'ChatMessage';
+              id: string | null;
+              role: string;
+              content: string;
+              attachments: Array<string> | null;
+              createdAt: string;
+              streamObjects: Array<{
+                __typename?: 'StreamObject';
+                type: string;
+                textDelta: string | null;
+                toolCallId: string | null;
+                toolName: string | null;
+                args: Record<string, string> | null;
+                result: Record<string, string> | null;
+              }> | null;
+            }>;
+          };
+        }>;
+      };
+    };
+  } | null;
+};
+
 export type UpdateCopilotSessionMutationVariables = Exact<{
   options: UpdateChatSessionInput;
 }>;
@@ -3138,8 +4461,9 @@ export type UpdateCopilotSessionMutation = {
 
 export type GetCopilotSessionsQueryVariables = Exact<{
   workspaceId: Scalars['String']['input'];
+  pagination: PaginationInput;
   docId?: InputMaybe<Scalars['String']['input']>;
-  options?: InputMaybe<QueryChatSessionsInput>;
+  options?: InputMaybe<QueryChatHistoriesInput>;
 }>;
 
 export type GetCopilotSessionsQuery = {
@@ -3148,14 +4472,196 @@ export type GetCopilotSessionsQuery = {
     __typename?: 'UserType';
     copilot: {
       __typename?: 'Copilot';
-      sessions: Array<{
-        __typename?: 'CopilotSessionType';
-        id: string;
-        parentSessionId: string | null;
-        promptName: string;
-      }>;
+      chats: {
+        __typename?: 'PaginatedCopilotHistoriesType';
+        pageInfo: {
+          __typename?: 'PageInfo';
+          hasNextPage: boolean;
+          hasPreviousPage: boolean;
+          startCursor: string | null;
+          endCursor: string | null;
+        };
+        edges: Array<{
+          __typename?: 'CopilotHistoriesTypeEdge';
+          cursor: string;
+          node: {
+            __typename?: 'CopilotHistories';
+            sessionId: string;
+            workspaceId: string;
+            docId: string | null;
+            parentSessionId: string | null;
+            promptName: string;
+            model: string;
+            optionalModels: Array<string>;
+            action: string | null;
+            pinned: boolean;
+            title: string | null;
+            tokens: number;
+            createdAt: string;
+            updatedAt: string;
+            messages: Array<{
+              __typename?: 'ChatMessage';
+              id: string | null;
+              role: string;
+              content: string;
+              attachments: Array<string> | null;
+              createdAt: string;
+              streamObjects: Array<{
+                __typename?: 'StreamObject';
+                type: string;
+                textDelta: string | null;
+                toolCallId: string | null;
+                toolName: string | null;
+                args: Record<string, string> | null;
+                result: Record<string, string> | null;
+              }> | null;
+            }>;
+          };
+        }>;
+      };
     };
   } | null;
+};
+
+export type AddWorkspaceEmbeddingFilesMutationVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  blob: Scalars['Upload']['input'];
+}>;
+
+export type AddWorkspaceEmbeddingFilesMutation = {
+  __typename?: 'Mutation';
+  addWorkspaceEmbeddingFiles: {
+    __typename?: 'CopilotWorkspaceFile';
+    fileId: string;
+    fileName: string;
+    blobId: string;
+    mimeType: string;
+    size: number;
+    createdAt: string;
+  };
+};
+
+export type GetWorkspaceEmbeddingFilesQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  pagination: PaginationInput;
+}>;
+
+export type GetWorkspaceEmbeddingFilesQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    embedding: {
+      __typename?: 'CopilotWorkspaceConfig';
+      files: {
+        __typename?: 'PaginatedCopilotWorkspaceFileType';
+        totalCount: number;
+        pageInfo: {
+          __typename?: 'PageInfo';
+          endCursor: string | null;
+          hasNextPage: boolean;
+        };
+        edges: Array<{
+          __typename?: 'CopilotWorkspaceFileTypeEdge';
+          node: {
+            __typename?: 'CopilotWorkspaceFile';
+            fileId: string;
+            fileName: string;
+            blobId: string;
+            mimeType: string;
+            size: number;
+            createdAt: string;
+          };
+        }>;
+      };
+    };
+  };
+};
+
+export type RemoveWorkspaceEmbeddingFilesMutationVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  fileId: Scalars['String']['input'];
+}>;
+
+export type RemoveWorkspaceEmbeddingFilesMutation = {
+  __typename?: 'Mutation';
+  removeWorkspaceEmbeddingFiles: boolean;
+};
+
+export type AddWorkspaceEmbeddingIgnoredDocsMutationVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  add: Array<Scalars['String']['input']> | Scalars['String']['input'];
+}>;
+
+export type AddWorkspaceEmbeddingIgnoredDocsMutation = {
+  __typename?: 'Mutation';
+  updateWorkspaceEmbeddingIgnoredDocs: number;
+};
+
+export type GetAllWorkspaceEmbeddingIgnoredDocsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+}>;
+
+export type GetAllWorkspaceEmbeddingIgnoredDocsQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    embedding: {
+      __typename?: 'CopilotWorkspaceConfig';
+      allIgnoredDocs: Array<{
+        __typename?: 'CopilotWorkspaceIgnoredDoc';
+        docId: string;
+        createdAt: string;
+      }>;
+    };
+  };
+};
+
+export type GetWorkspaceEmbeddingIgnoredDocsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  pagination: PaginationInput;
+}>;
+
+export type GetWorkspaceEmbeddingIgnoredDocsQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    embedding: {
+      __typename?: 'CopilotWorkspaceConfig';
+      ignoredDocs: {
+        __typename?: 'PaginatedIgnoredDocsType';
+        totalCount: number;
+        pageInfo: {
+          __typename?: 'PageInfo';
+          endCursor: string | null;
+          hasNextPage: boolean;
+        };
+        edges: Array<{
+          __typename?: 'CopilotWorkspaceIgnoredDocTypeEdge';
+          node: {
+            __typename?: 'CopilotWorkspaceIgnoredDoc';
+            docId: string;
+            createdAt: string;
+            docCreatedAt: string | null;
+            docUpdatedAt: string | null;
+            title: string | null;
+            createdBy: string | null;
+            createdByAvatar: string | null;
+            updatedBy: string | null;
+          };
+        }>;
+      };
+    };
+  };
+};
+
+export type RemoveWorkspaceEmbeddingIgnoredDocsMutationVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  remove: Array<Scalars['String']['input']> | Scalars['String']['input'];
+}>;
+
+export type RemoveWorkspaceEmbeddingIgnoredDocsMutation = {
+  __typename?: 'Mutation';
+  updateWorkspaceEmbeddingIgnoredDocs: number;
 };
 
 export type CreateCheckoutSessionMutationVariables = Exact<{
@@ -3195,15 +4701,6 @@ export type CreateWorkspaceMutation = {
     public: boolean;
     createdAt: string;
   };
-};
-
-export type DeactivateLicenseMutationVariables = Exact<{
-  workspaceId: Scalars['String']['input'];
-}>;
-
-export type DeactivateLicenseMutation = {
-  __typename?: 'Mutation';
-  deactivateLicense: boolean;
 };
 
 export type DeleteAccountMutationVariables = Exact<{ [key: string]: never }>;
@@ -3248,9 +4745,113 @@ export type GetDocRolePermissionsQuery = {
         Doc_Update: boolean;
         Doc_Users_Manage: boolean;
         Doc_Users_Read: boolean;
+        Doc_Comments_Create: boolean;
+        Doc_Comments_Delete: boolean;
+        Doc_Comments_Read: boolean;
+        Doc_Comments_Resolve: boolean;
       };
     };
   };
+};
+
+export type CopilotChatMessageFragment = {
+  __typename?: 'ChatMessage';
+  id: string | null;
+  role: string;
+  content: string;
+  attachments: Array<string> | null;
+  createdAt: string;
+  streamObjects: Array<{
+    __typename?: 'StreamObject';
+    type: string;
+    textDelta: string | null;
+    toolCallId: string | null;
+    toolName: string | null;
+    args: Record<string, string> | null;
+    result: Record<string, string> | null;
+  }> | null;
+};
+
+export type CopilotChatHistoryFragment = {
+  __typename?: 'CopilotHistories';
+  sessionId: string;
+  workspaceId: string;
+  docId: string | null;
+  parentSessionId: string | null;
+  promptName: string;
+  model: string;
+  optionalModels: Array<string>;
+  action: string | null;
+  pinned: boolean;
+  title: string | null;
+  tokens: number;
+  createdAt: string;
+  updatedAt: string;
+  messages: Array<{
+    __typename?: 'ChatMessage';
+    id: string | null;
+    role: string;
+    content: string;
+    attachments: Array<string> | null;
+    createdAt: string;
+    streamObjects: Array<{
+      __typename?: 'StreamObject';
+      type: string;
+      textDelta: string | null;
+      toolCallId: string | null;
+      toolName: string | null;
+      args: Record<string, string> | null;
+      result: Record<string, string> | null;
+    }> | null;
+  }>;
+};
+
+export type PaginatedCopilotChatsFragment = {
+  __typename?: 'PaginatedCopilotHistoriesType';
+  pageInfo: {
+    __typename?: 'PageInfo';
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    startCursor: string | null;
+    endCursor: string | null;
+  };
+  edges: Array<{
+    __typename?: 'CopilotHistoriesTypeEdge';
+    cursor: string;
+    node: {
+      __typename?: 'CopilotHistories';
+      sessionId: string;
+      workspaceId: string;
+      docId: string | null;
+      parentSessionId: string | null;
+      promptName: string;
+      model: string;
+      optionalModels: Array<string>;
+      action: string | null;
+      pinned: boolean;
+      title: string | null;
+      tokens: number;
+      createdAt: string;
+      updatedAt: string;
+      messages: Array<{
+        __typename?: 'ChatMessage';
+        id: string | null;
+        role: string;
+        content: string;
+        attachments: Array<string> | null;
+        createdAt: string;
+        streamObjects: Array<{
+          __typename?: 'StreamObject';
+          type: string;
+          textDelta: string | null;
+          toolCallId: string | null;
+          toolName: string | null;
+          args: Record<string, string> | null;
+          result: Record<string, string> | null;
+        }> | null;
+      }>;
+    };
+  }>;
 };
 
 export type CredentialsRequirementsFragment = {
@@ -3309,6 +4910,36 @@ export type GetCurrentUserQuery = {
   } | null;
 };
 
+export type GetDocCreatedByUpdatedByListQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  pagination: PaginationInput;
+}>;
+
+export type GetDocCreatedByUpdatedByListQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    docs: {
+      __typename?: 'PaginatedDocType';
+      totalCount: number;
+      pageInfo: {
+        __typename?: 'PageInfo';
+        endCursor: string | null;
+        hasNextPage: boolean;
+      };
+      edges: Array<{
+        __typename?: 'DocTypeEdge';
+        node: {
+          __typename?: 'DocType';
+          id: string;
+          creatorId: string | null;
+          lastUpdaterId: string | null;
+        };
+      }>;
+    };
+  };
+};
+
 export type GetDocDefaultRoleQueryVariables = Exact<{
   workspaceId: Scalars['String']['input'];
   docId: Scalars['String']['input'];
@@ -3350,37 +4981,6 @@ export type GetInviteInfoQuery = {
       email: string;
       avatarUrl: string | null;
     };
-  };
-};
-
-export type GetIsAdminQueryVariables = Exact<{
-  workspaceId: Scalars['String']['input'];
-}>;
-
-export type GetIsAdminQuery = { __typename?: 'Query'; isAdmin: boolean };
-
-export type GetIsOwnerQueryVariables = Exact<{
-  workspaceId: Scalars['String']['input'];
-}>;
-
-export type GetIsOwnerQuery = { __typename?: 'Query'; isOwner: boolean };
-
-export type GetLicenseQueryVariables = Exact<{
-  workspaceId: Scalars['String']['input'];
-}>;
-
-export type GetLicenseQuery = {
-  __typename?: 'Query';
-  workspace: {
-    __typename?: 'WorkspaceType';
-    license: {
-      __typename?: 'License';
-      expiredAt: string | null;
-      installedAt: string;
-      quantity: number;
-      recurring: SubscriptionRecurring;
-      validatedAt: string;
-    } | null;
   };
 };
 
@@ -3482,6 +5082,39 @@ export type GetPublicUserByIdQuery = {
   } | null;
 };
 
+export type GetRecentlyUpdatedDocsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  pagination: PaginationInput;
+}>;
+
+export type GetRecentlyUpdatedDocsQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    recentlyUpdatedDocs: {
+      __typename?: 'PaginatedDocType';
+      totalCount: number;
+      pageInfo: {
+        __typename?: 'PageInfo';
+        endCursor: string | null;
+        hasNextPage: boolean;
+      };
+      edges: Array<{
+        __typename?: 'DocTypeEdge';
+        node: {
+          __typename?: 'DocType';
+          id: string;
+          title: string | null;
+          createdAt: string | null;
+          updatedAt: string | null;
+          creatorId: string | null;
+          lastUpdaterId: string | null;
+        };
+      }>;
+    };
+  };
+};
+
 export type GetUserFeaturesQueryVariables = Exact<{ [key: string]: never }>;
 
 export type GetUserFeaturesQuery = {
@@ -3503,6 +5136,7 @@ export type GetUserSettingsQuery = {
       __typename?: 'UserSettingsType';
       receiveInvitationEmail: boolean;
       receiveMentionEmail: boolean;
+      receiveCommentEmail: boolean;
     };
   } | null;
 };
@@ -3536,9 +5170,7 @@ export type GetWorkspaceInfoQueryVariables = Exact<{
 
 export type GetWorkspaceInfoQuery = {
   __typename?: 'Query';
-  isAdmin: boolean;
-  isOwner: boolean;
-  workspace: { __typename?: 'WorkspaceType'; team: boolean };
+  workspace: { __typename?: 'WorkspaceType'; role: Permission; team: boolean };
 };
 
 export type GetWorkspacePageByIdQueryVariables = Exact<{
@@ -3556,6 +5188,8 @@ export type GetWorkspacePageByIdQuery = {
       mode: PublicDocMode;
       defaultRole: DocRole;
       public: boolean;
+      title: string | null;
+      summary: string | null;
     };
   };
 };
@@ -3570,7 +5204,7 @@ export type GetWorkspacePageMetaByIdQuery = {
   workspace: {
     __typename?: 'WorkspaceType';
     pageMeta: {
-      __typename?: 'WorkspacePageMeta';
+      __typename?: 'WorkspaceDocMeta';
       createdAt: string;
       updatedAt: string;
       createdBy: {
@@ -3690,6 +5324,99 @@ export type ListHistoryQuery = {
   };
 };
 
+export type IndexerAggregateQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+  input: AggregateInput;
+}>;
+
+export type IndexerAggregateQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    aggregate: {
+      __typename?: 'AggregateResultObjectType';
+      buckets: Array<{
+        __typename?: 'AggregateBucketObjectType';
+        key: string;
+        count: number;
+        hits: {
+          __typename?: 'AggregateBucketHitsObjectType';
+          nodes: Array<{
+            __typename?: 'SearchNodeObjectType';
+            fields: any;
+            highlights: any | null;
+          }>;
+        };
+      }>;
+      pagination: {
+        __typename?: 'SearchResultPagination';
+        count: number;
+        hasMore: boolean;
+        nextCursor: string | null;
+      };
+    };
+  };
+};
+
+export type IndexerSearchDocsQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+  input: SearchDocsInput;
+}>;
+
+export type IndexerSearchDocsQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    searchDocs: Array<{
+      __typename?: 'SearchDocObjectType';
+      docId: string;
+      title: string;
+      blockId: string;
+      highlight: string;
+      createdAt: string;
+      updatedAt: string;
+      createdByUser: {
+        __typename?: 'PublicUserType';
+        id: string;
+        name: string;
+        avatarUrl: string | null;
+      } | null;
+      updatedByUser: {
+        __typename?: 'PublicUserType';
+        id: string;
+        name: string;
+        avatarUrl: string | null;
+      } | null;
+    }>;
+  };
+};
+
+export type IndexerSearchQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+  input: SearchInput;
+}>;
+
+export type IndexerSearchQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    search: {
+      __typename?: 'SearchResultObjectType';
+      nodes: Array<{
+        __typename?: 'SearchNodeObjectType';
+        fields: any;
+        highlights: any | null;
+      }>;
+      pagination: {
+        __typename?: 'SearchResultPagination';
+        count: number;
+        hasMore: boolean;
+        nextCursor: string | null;
+      };
+    };
+  };
+};
+
 export type GetInvoicesCountQueryVariables = Exact<{ [key: string]: never }>;
 
 export type GetInvoicesCountQuery = {
@@ -3729,6 +5456,81 @@ export type LeaveWorkspaceMutationVariables = Exact<{
 export type LeaveWorkspaceMutation = {
   __typename?: 'Mutation';
   leaveWorkspace: boolean;
+};
+
+export type ActivateLicenseMutationVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  license: Scalars['String']['input'];
+}>;
+
+export type ActivateLicenseMutation = {
+  __typename?: 'Mutation';
+  activateLicense: {
+    __typename?: 'License';
+    expiredAt: string | null;
+    installedAt: string;
+    quantity: number;
+    recurring: SubscriptionRecurring;
+    validatedAt: string;
+    variant: SubscriptionVariant | null;
+  };
+};
+
+export type DeactivateLicenseMutationVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+}>;
+
+export type DeactivateLicenseMutation = {
+  __typename?: 'Mutation';
+  deactivateLicense: boolean;
+};
+
+export type GetLicenseQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+}>;
+
+export type GetLicenseQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    license: {
+      __typename?: 'License';
+      expiredAt: string | null;
+      installedAt: string;
+      quantity: number;
+      recurring: SubscriptionRecurring;
+      validatedAt: string;
+      variant: SubscriptionVariant | null;
+    } | null;
+  };
+};
+
+export type InstallLicenseMutationVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  license: Scalars['Upload']['input'];
+}>;
+
+export type InstallLicenseMutation = {
+  __typename?: 'Mutation';
+  installLicense: {
+    __typename?: 'License';
+    expiredAt: string | null;
+    installedAt: string;
+    quantity: number;
+    recurring: SubscriptionRecurring;
+    validatedAt: string;
+    variant: SubscriptionVariant | null;
+  };
+};
+
+export type LicenseBodyFragment = {
+  __typename?: 'License';
+  expiredAt: string | null;
+  installedAt: string;
+  quantity: number;
+  recurring: SubscriptionRecurring;
+  validatedAt: string;
+  variant: SubscriptionVariant | null;
 };
 
 export type ListNotificationsQueryVariables = Exact<{
@@ -3836,6 +5638,15 @@ export type QuotaQuery = {
   } | null;
 };
 
+export type ReadAllNotificationsMutationVariables = Exact<{
+  [key: string]: never;
+}>;
+
+export type ReadAllNotificationsMutation = {
+  __typename?: 'Mutation';
+  readAllNotifications: boolean;
+};
+
 export type ReadNotificationMutationVariables = Exact<{
   id: Scalars['String']['input'];
 }>;
@@ -3896,7 +5707,7 @@ export type RevokeMemberPermissionMutationVariables = Exact<{
 
 export type RevokeMemberPermissionMutation = {
   __typename?: 'Mutation';
-  revoke: boolean;
+  revokeMember: boolean;
 };
 
 export type RevokePublicPageMutationVariables = Exact<{
@@ -4093,6 +5904,25 @@ export type VerifyEmailMutation = {
   verifyEmail: boolean;
 };
 
+export type WorkspaceBlobQuotaQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+export type WorkspaceBlobQuotaQuery = {
+  __typename?: 'Query';
+  workspace: {
+    __typename?: 'WorkspaceType';
+    quota: {
+      __typename?: 'WorkspaceQuotaType';
+      blobLimit: number;
+      humanReadable: {
+        __typename?: 'WorkspaceQuotaHumanReadableType';
+        blobLimit: string;
+      };
+    };
+  };
+};
+
 export type GetWorkspaceConfigQueryVariables = Exact<{
   id: Scalars['String']['input'];
 }>;
@@ -4103,6 +5933,7 @@ export type GetWorkspaceConfigQuery = {
     __typename?: 'WorkspaceType';
     enableAi: boolean;
     enableUrlPreview: boolean;
+    enableDocEmbedding: boolean;
     inviteLink: {
       __typename?: 'InviteLink';
       link: string;
@@ -4121,6 +5952,16 @@ export type SetEnableAiMutation = {
   updateWorkspace: { __typename?: 'WorkspaceType'; id: string };
 };
 
+export type SetEnableDocEmbeddingMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  enableDocEmbedding: Scalars['Boolean']['input'];
+}>;
+
+export type SetEnableDocEmbeddingMutation = {
+  __typename?: 'Mutation';
+  updateWorkspace: { __typename?: 'WorkspaceType'; id: string };
+};
+
 export type SetEnableUrlPreviewMutationVariables = Exact<{
   id: Scalars['ID']['input'];
   enableUrlPreview: Scalars['Boolean']['input'];
@@ -4131,23 +5972,14 @@ export type SetEnableUrlPreviewMutation = {
   updateWorkspace: { __typename?: 'WorkspaceType'; id: string };
 };
 
-export type InviteByEmailMutationVariables = Exact<{
-  workspaceId: Scalars['String']['input'];
-  email: Scalars['String']['input'];
-  sendInviteMail?: InputMaybe<Scalars['Boolean']['input']>;
-}>;
-
-export type InviteByEmailMutation = { __typename?: 'Mutation'; invite: string };
-
 export type InviteByEmailsMutationVariables = Exact<{
   workspaceId: Scalars['String']['input'];
   emails: Array<Scalars['String']['input']> | Scalars['String']['input'];
-  sendInviteMail?: InputMaybe<Scalars['Boolean']['input']>;
 }>;
 
 export type InviteByEmailsMutation = {
   __typename?: 'Mutation';
-  inviteBatch: Array<{
+  inviteMembers: Array<{
     __typename?: 'InviteResult';
     email: string;
     inviteId: string | null;
@@ -4158,28 +5990,11 @@ export type InviteByEmailsMutation = {
 export type AcceptInviteByInviteIdMutationVariables = Exact<{
   workspaceId: Scalars['String']['input'];
   inviteId: Scalars['String']['input'];
-  sendAcceptMail?: InputMaybe<Scalars['Boolean']['input']>;
 }>;
 
 export type AcceptInviteByInviteIdMutation = {
   __typename?: 'Mutation';
   acceptInviteById: boolean;
-};
-
-export type InviteBatchMutationVariables = Exact<{
-  workspaceId: Scalars['String']['input'];
-  emails: Array<Scalars['String']['input']> | Scalars['String']['input'];
-  sendInviteMail?: InputMaybe<Scalars['Boolean']['input']>;
-}>;
-
-export type InviteBatchMutation = {
-  __typename?: 'Mutation';
-  inviteBatch: Array<{
-    __typename?: 'InviteResult';
-    email: string;
-    inviteId: string | null;
-    sentSuccess: boolean;
-  }>;
 };
 
 export type CreateInviteLinkMutationVariables = Exact<{
@@ -4247,6 +6062,7 @@ export type WorkspaceQuotaQuery = {
       historyPeriod: number;
       memberLimit: number;
       memberCount: number;
+      overcapacityMemberCount: number;
       humanReadable: {
         __typename?: 'WorkspaceQuotaHumanReadableType';
         name: string;
@@ -4254,6 +6070,8 @@ export type WorkspaceQuotaQuery = {
         storageQuota: string;
         historyPeriod: string;
         memberLimit: string;
+        memberCount: string;
+        overcapacityMemberCount: string;
       };
     };
   };
@@ -4336,11 +6154,6 @@ export type Queries =
       response: GetUserByEmailQuery;
     }
   | {
-      name: 'getUsersCountQuery';
-      variables: GetUsersCountQueryVariables;
-      response: GetUsersCountQuery;
-    }
-  | {
       name: 'listUsersQuery';
       variables: ListUsersQueryVariables;
       response: ListUsersQuery;
@@ -4349,6 +6162,21 @@ export type Queries =
       name: 'listBlobsQuery';
       variables: ListBlobsQueryVariables;
       response: ListBlobsQuery;
+    }
+  | {
+      name: 'listCommentChangesQuery';
+      variables: ListCommentChangesQueryVariables;
+      response: ListCommentChangesQuery;
+    }
+  | {
+      name: 'listCommentsQuery';
+      variables: ListCommentsQueryVariables;
+      response: ListCommentsQuery;
+    }
+  | {
+      name: 'applyDocUpdatesQuery';
+      variables: ApplyDocUpdatesQueryVariables;
+      response: ApplyDocUpdatesQuery;
     }
   | {
       name: 'listContextObjectQuery';
@@ -4386,6 +6214,21 @@ export type Queries =
       response: GetCopilotHistoryIdsQuery;
     }
   | {
+      name: 'getCopilotDocSessionsQuery';
+      variables: GetCopilotDocSessionsQueryVariables;
+      response: GetCopilotDocSessionsQuery;
+    }
+  | {
+      name: 'getCopilotPinnedSessionsQuery';
+      variables: GetCopilotPinnedSessionsQueryVariables;
+      response: GetCopilotPinnedSessionsQuery;
+    }
+  | {
+      name: 'getCopilotWorkspaceSessionsQuery';
+      variables: GetCopilotWorkspaceSessionsQueryVariables;
+      response: GetCopilotWorkspaceSessionsQuery;
+    }
+  | {
       name: 'getCopilotHistoriesQuery';
       variables: GetCopilotHistoriesQueryVariables;
       response: GetCopilotHistoriesQuery;
@@ -4401,9 +6244,39 @@ export type Queries =
       response: CopilotQuotaQuery;
     }
   | {
+      name: 'getCopilotLatestDocSessionQuery';
+      variables: GetCopilotLatestDocSessionQueryVariables;
+      response: GetCopilotLatestDocSessionQuery;
+    }
+  | {
+      name: 'getCopilotSessionQuery';
+      variables: GetCopilotSessionQueryVariables;
+      response: GetCopilotSessionQuery;
+    }
+  | {
+      name: 'getCopilotRecentSessionsQuery';
+      variables: GetCopilotRecentSessionsQueryVariables;
+      response: GetCopilotRecentSessionsQuery;
+    }
+  | {
       name: 'getCopilotSessionsQuery';
       variables: GetCopilotSessionsQueryVariables;
       response: GetCopilotSessionsQuery;
+    }
+  | {
+      name: 'getWorkspaceEmbeddingFilesQuery';
+      variables: GetWorkspaceEmbeddingFilesQueryVariables;
+      response: GetWorkspaceEmbeddingFilesQuery;
+    }
+  | {
+      name: 'getAllWorkspaceEmbeddingIgnoredDocsQuery';
+      variables: GetAllWorkspaceEmbeddingIgnoredDocsQueryVariables;
+      response: GetAllWorkspaceEmbeddingIgnoredDocsQuery;
+    }
+  | {
+      name: 'getWorkspaceEmbeddingIgnoredDocsQuery';
+      variables: GetWorkspaceEmbeddingIgnoredDocsQueryVariables;
+      response: GetWorkspaceEmbeddingIgnoredDocsQuery;
     }
   | {
       name: 'getDocRolePermissionsQuery';
@@ -4421,6 +6294,11 @@ export type Queries =
       response: GetCurrentUserQuery;
     }
   | {
+      name: 'getDocCreatedByUpdatedByListQuery';
+      variables: GetDocCreatedByUpdatedByListQueryVariables;
+      response: GetDocCreatedByUpdatedByListQuery;
+    }
+  | {
       name: 'getDocDefaultRoleQuery';
       variables: GetDocDefaultRoleQueryVariables;
       response: GetDocDefaultRoleQuery;
@@ -4429,21 +6307,6 @@ export type Queries =
       name: 'getInviteInfoQuery';
       variables: GetInviteInfoQueryVariables;
       response: GetInviteInfoQuery;
-    }
-  | {
-      name: 'getIsAdminQuery';
-      variables: GetIsAdminQueryVariables;
-      response: GetIsAdminQuery;
-    }
-  | {
-      name: 'getIsOwnerQuery';
-      variables: GetIsOwnerQueryVariables;
-      response: GetIsOwnerQuery;
-    }
-  | {
-      name: 'getLicenseQuery';
-      variables: GetLicenseQueryVariables;
-      response: GetLicenseQuery;
     }
   | {
       name: 'getMemberCountByWorkspaceIdQuery';
@@ -4469,6 +6332,11 @@ export type Queries =
       name: 'getPublicUserByIdQuery';
       variables: GetPublicUserByIdQueryVariables;
       response: GetPublicUserByIdQuery;
+    }
+  | {
+      name: 'getRecentlyUpdatedDocsQuery';
+      variables: GetRecentlyUpdatedDocsQueryVariables;
+      response: GetRecentlyUpdatedDocsQuery;
     }
   | {
       name: 'getUserFeaturesQuery';
@@ -4531,6 +6399,21 @@ export type Queries =
       response: ListHistoryQuery;
     }
   | {
+      name: 'indexerAggregateQuery';
+      variables: IndexerAggregateQueryVariables;
+      response: IndexerAggregateQuery;
+    }
+  | {
+      name: 'indexerSearchDocsQuery';
+      variables: IndexerSearchDocsQueryVariables;
+      response: IndexerSearchDocsQuery;
+    }
+  | {
+      name: 'indexerSearchQuery';
+      variables: IndexerSearchQueryVariables;
+      response: IndexerSearchQuery;
+    }
+  | {
       name: 'getInvoicesCountQuery';
       variables: GetInvoicesCountQueryVariables;
       response: GetInvoicesCountQuery;
@@ -4539,6 +6422,11 @@ export type Queries =
       name: 'invoicesQuery';
       variables: InvoicesQueryVariables;
       response: InvoicesQuery;
+    }
+  | {
+      name: 'getLicenseQuery';
+      variables: GetLicenseQueryVariables;
+      response: GetLicenseQuery;
     }
   | {
       name: 'listNotificationsQuery';
@@ -4571,6 +6459,11 @@ export type Queries =
       response: SubscriptionQuery;
     }
   | {
+      name: 'workspaceBlobQuotaQuery';
+      variables: WorkspaceBlobQuotaQueryVariables;
+      response: WorkspaceBlobQuotaQuery;
+    }
+  | {
       name: 'getWorkspaceConfigQuery';
       variables: GetWorkspaceConfigQueryVariables;
       response: GetWorkspaceConfigQuery;
@@ -4592,11 +6485,6 @@ export type Queries =
     };
 
 export type Mutations =
-  | {
-      name: 'activateLicenseMutation';
-      variables: ActivateLicenseMutationVariables;
-      response: ActivateLicenseMutation;
-    }
   | {
       name: 'createChangePasswordUrlMutation';
       variables: CreateChangePasswordUrlMutationVariables;
@@ -4653,6 +6541,11 @@ export type Mutations =
       response: UpdateAppConfigMutation;
     }
   | {
+      name: 'validateConfigMutation';
+      variables: ValidateConfigMutationVariables;
+      response: ValidateConfigMutation;
+    }
+  | {
       name: 'deleteBlobMutation';
       variables: DeleteBlobMutationVariables;
       response: DeleteBlobMutation;
@@ -4681,6 +6574,46 @@ export type Mutations =
       name: 'changePasswordMutation';
       variables: ChangePasswordMutationVariables;
       response: ChangePasswordMutation;
+    }
+  | {
+      name: 'createCommentMutation';
+      variables: CreateCommentMutationVariables;
+      response: CreateCommentMutation;
+    }
+  | {
+      name: 'deleteCommentMutation';
+      variables: DeleteCommentMutationVariables;
+      response: DeleteCommentMutation;
+    }
+  | {
+      name: 'createReplyMutation';
+      variables: CreateReplyMutationVariables;
+      response: CreateReplyMutation;
+    }
+  | {
+      name: 'deleteReplyMutation';
+      variables: DeleteReplyMutationVariables;
+      response: DeleteReplyMutation;
+    }
+  | {
+      name: 'updateReplyMutation';
+      variables: UpdateReplyMutationVariables;
+      response: UpdateReplyMutation;
+    }
+  | {
+      name: 'resolveCommentMutation';
+      variables: ResolveCommentMutationVariables;
+      response: ResolveCommentMutation;
+    }
+  | {
+      name: 'updateCommentMutation';
+      variables: UpdateCommentMutationVariables;
+      response: UpdateCommentMutation;
+    }
+  | {
+      name: 'uploadCommentAttachmentMutation';
+      variables: UploadCommentAttachmentMutationVariables;
+      response: UploadCommentAttachmentMutation;
     }
   | {
       name: 'addContextCategoryMutation';
@@ -4763,6 +6696,26 @@ export type Mutations =
       response: UpdateCopilotSessionMutation;
     }
   | {
+      name: 'addWorkspaceEmbeddingFilesMutation';
+      variables: AddWorkspaceEmbeddingFilesMutationVariables;
+      response: AddWorkspaceEmbeddingFilesMutation;
+    }
+  | {
+      name: 'removeWorkspaceEmbeddingFilesMutation';
+      variables: RemoveWorkspaceEmbeddingFilesMutationVariables;
+      response: RemoveWorkspaceEmbeddingFilesMutation;
+    }
+  | {
+      name: 'addWorkspaceEmbeddingIgnoredDocsMutation';
+      variables: AddWorkspaceEmbeddingIgnoredDocsMutationVariables;
+      response: AddWorkspaceEmbeddingIgnoredDocsMutation;
+    }
+  | {
+      name: 'removeWorkspaceEmbeddingIgnoredDocsMutation';
+      variables: RemoveWorkspaceEmbeddingIgnoredDocsMutationVariables;
+      response: RemoveWorkspaceEmbeddingIgnoredDocsMutation;
+    }
+  | {
       name: 'createCheckoutSessionMutation';
       variables: CreateCheckoutSessionMutationVariables;
       response: CreateCheckoutSessionMutation;
@@ -4781,11 +6734,6 @@ export type Mutations =
       name: 'createWorkspaceMutation';
       variables: CreateWorkspaceMutationVariables;
       response: CreateWorkspaceMutation;
-    }
-  | {
-      name: 'deactivateLicenseMutation';
-      variables: DeactivateLicenseMutationVariables;
-      response: DeactivateLicenseMutation;
     }
   | {
       name: 'deleteAccountMutation';
@@ -4813,6 +6761,21 @@ export type Mutations =
       response: LeaveWorkspaceMutation;
     }
   | {
+      name: 'activateLicenseMutation';
+      variables: ActivateLicenseMutationVariables;
+      response: ActivateLicenseMutation;
+    }
+  | {
+      name: 'deactivateLicenseMutation';
+      variables: DeactivateLicenseMutationVariables;
+      response: DeactivateLicenseMutation;
+    }
+  | {
+      name: 'installLicenseMutation';
+      variables: InstallLicenseMutationVariables;
+      response: InstallLicenseMutation;
+    }
+  | {
       name: 'mentionUserMutation';
       variables: MentionUserMutationVariables;
       response: MentionUserMutation;
@@ -4821,6 +6784,11 @@ export type Mutations =
       name: 'publishPageMutation';
       variables: PublishPageMutationVariables;
       response: PublishPageMutation;
+    }
+  | {
+      name: 'readAllNotificationsMutation';
+      variables: ReadAllNotificationsMutationVariables;
+      response: ReadAllNotificationsMutation;
     }
   | {
       name: 'readNotificationMutation';
@@ -4928,14 +6896,14 @@ export type Mutations =
       response: SetEnableAiMutation;
     }
   | {
+      name: 'setEnableDocEmbeddingMutation';
+      variables: SetEnableDocEmbeddingMutationVariables;
+      response: SetEnableDocEmbeddingMutation;
+    }
+  | {
       name: 'setEnableUrlPreviewMutation';
       variables: SetEnableUrlPreviewMutationVariables;
       response: SetEnableUrlPreviewMutation;
-    }
-  | {
-      name: 'inviteByEmailMutation';
-      variables: InviteByEmailMutationVariables;
-      response: InviteByEmailMutation;
     }
   | {
       name: 'inviteByEmailsMutation';
@@ -4946,11 +6914,6 @@ export type Mutations =
       name: 'acceptInviteByInviteIdMutation';
       variables: AcceptInviteByInviteIdMutationVariables;
       response: AcceptInviteByInviteIdMutation;
-    }
-  | {
-      name: 'inviteBatchMutation';
-      variables: InviteBatchMutationVariables;
-      response: InviteBatchMutation;
     }
   | {
       name: 'createInviteLinkMutation';

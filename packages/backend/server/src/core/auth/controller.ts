@@ -27,6 +27,7 @@ import {
   Throttle,
   URLHelper,
   UseNamedGuard,
+  WrongSignInCredentials,
 } from '../../base';
 import { Models, TokenType } from '../../models';
 import { validators } from '../utils/validators';
@@ -37,7 +38,6 @@ import { CurrentUser, Session } from './session';
 interface PreflightResponse {
   registered: boolean;
   hasPassword: boolean;
-  magicLink: boolean;
 }
 
 interface SignInCredential {
@@ -91,20 +91,16 @@ export class AuthController {
 
     const user = await this.models.user.getUserByEmail(params.email);
 
-    const magicLinkAvailable = this.config.mailer.enabled;
-
     if (!user) {
       return {
         registered: false,
         hasPassword: false,
-        magicLink: magicLinkAvailable,
       };
     }
 
     return {
       registered: user.registered,
       hasPassword: !!user.password,
-      magicLink: magicLinkAvailable,
     };
   }
 
@@ -167,7 +163,10 @@ export class AuthController {
     clientNonce?: string
   ) {
     // send email magic link
-    const user = await this.models.user.getUserByEmail(email);
+    const user = await this.models.user.getUserByEmail(email, {
+      withDisabled: true,
+    });
+
     if (!user) {
       if (!this.config.auth.allowSignup) {
         throw new SignUpForbidden();
@@ -196,6 +195,8 @@ export class AuthController {
           throw new InvalidEmail({ email });
         }
       }
+    } else if (user.disabled) {
+      throw new WrongSignInCredentials({ email });
     }
 
     const ttlInSec = 30 * 60;

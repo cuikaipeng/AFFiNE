@@ -1,12 +1,9 @@
-import {
-  EdgelessLegacySlotIdentifier,
-  type SurfaceBlockComponent,
-} from '@blocksuite/affine-block-surface';
+import { EdgelessLegacySlotIdentifier } from '@blocksuite/affine-block-surface';
 import { getSelectedRect } from '@blocksuite/affine-shared/utils';
 import { type IVec, Rect } from '@blocksuite/global/gfx';
 import {
   GfxControllerIdentifier,
-  type GfxToolsFullOptionValue,
+  type ToolOptionWithType,
 } from '@blocksuite/std/gfx';
 import { effect } from '@preact/signals-core';
 
@@ -25,10 +22,9 @@ import type { AffineDragHandleWidget } from '../drag-handle.js';
  */
 export class EdgelessWatcher {
   private readonly _handleEdgelessToolUpdated = (
-    newTool: GfxToolsFullOptionValue
+    newTool: ToolOptionWithType
   ) => {
-    // @ts-expect-error GfxToolsFullOptionValue is extended in other packages
-    if (newTool.type === 'default') {
+    if (newTool.toolType?.toolName === 'default') {
       this.updateAnchorElement();
     } else {
       this.widget.hide();
@@ -54,20 +50,14 @@ export class EdgelessWatcher {
     }
 
     if (this.widget.isGfxDragHandleVisible) {
-      this._showDragHandle().catch(console.error);
+      this._showDragHandle();
       this._updateDragHoverRectTopLevelBlock();
     } else if (this.widget.activeDragHandle) {
       this.widget.hide();
     }
   };
 
-  private readonly _showDragHandle = async () => {
-    const surfaceModel = this.widget.doc.getModelsByFlavour('affine:surface');
-    const surface = this.widget.std.view.getBlock(
-      surfaceModel[0]!.id
-    ) as SurfaceBlockComponent;
-    await surface.updateComplete;
-
+  private readonly _showDragHandle = () => {
     if (!this.widget.anchorBlockId) return;
 
     const container = this.widget.dragHandleContainer;
@@ -101,7 +91,7 @@ export class EdgelessWatcher {
 
   updateAnchorElement = () => {
     if (!this.widget.isConnected) return;
-    if (this.widget.doc.readonly || this.widget.mode === 'page') {
+    if (this.widget.store.readonly || this.widget.mode === 'page') {
       this.widget.hide();
       return;
     }
@@ -110,7 +100,11 @@ export class EdgelessWatcher {
     const editing = selection.editing;
     const selectedElements = selection.selectedElements;
 
-    if (editing || selectedElements.length !== 1 || this.widget.doc.readonly) {
+    if (
+      editing ||
+      selectedElements.length !== 1 ||
+      this.widget.store.readonly
+    ) {
       this.widget.hide();
       return;
     }
@@ -119,7 +113,7 @@ export class EdgelessWatcher {
 
     this.widget.anchorBlockId.value = selectedElement.id;
 
-    this._showDragHandle().catch(console.error);
+    this._showDragHandle();
   };
 
   get hoveredElemAreaRect() {
@@ -212,11 +206,27 @@ export class EdgelessWatcher {
       })
     );
 
+    disposables.add(
+      std.store.slots.blockUpdated.subscribe(payload => {
+        if (
+          this.widget.isGfxDragHandleVisible &&
+          payload.id === this.widget.anchorBlockId.peek()
+        ) {
+          if (payload.type === 'delete') {
+            this.widget.hide();
+          }
+          if (payload.type === 'update') {
+            this._showDragHandle();
+          }
+        }
+      })
+    );
+
     if (surface) {
       disposables.add(
         surface.elementUpdated.subscribe(() => {
           if (this.widget.isGfxDragHandleVisible) {
-            this._showDragHandle().catch(console.error);
+            this._showDragHandle();
           }
         })
       );

@@ -1,6 +1,5 @@
 import {
   type CanvasRenderer,
-  ConnectorUtils,
   type ElementRenderer,
   ElementRendererExtension,
   type RoughCanvas,
@@ -26,6 +25,7 @@ import {
 } from '@blocksuite/global/gfx';
 import { deltaInsertsToChunks } from '@blocksuite/std/inline';
 
+import { isConnectorWithLabel } from '../connector-manager.js';
 import {
   DEFAULT_ARROW_SIZE,
   getArrowOptions,
@@ -55,7 +55,7 @@ export const connector: ElementRenderer<
 
   ctx.setTransform(matrix);
 
-  const hasLabel = ConnectorUtils.isConnectorWithLabel(model);
+  const hasLabel = isConnectorWithLabel(model);
   let dx = 0;
   let dy = 0;
 
@@ -249,12 +249,19 @@ function renderLabel(
   const [, , w, h] = labelXYWH!;
   const cx = w / 2;
   const cy = h / 2;
+
+  ctx.setTransform(matrix);
+
+  if (renderer.usePlaceholder) {
+    ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+    ctx.fillRect(0, 0, w, h);
+    return; // Skip actual label rendering
+  }
+
   const deltas = wrapTextDeltas(text!, font, w);
   const lines = deltaInsertsToChunks(deltas);
   const lineHeight = getLineHeight(fontFamily, fontSize, fontWeight);
   const textHeight = (lines.length - 1) * lineHeight * 0.5;
-
-  ctx.setTransform(matrix);
 
   ctx.font = font;
   ctx.textAlign = textAlign;

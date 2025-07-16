@@ -99,6 +99,13 @@ export const SidebarAudioPlayer = () => {
     [audioMediaManagerService]
   );
 
+  const handlePlaybackRateChange = useCallback(
+    (rate: number) => {
+      audioMediaManagerService.setPlaybackRate(rate);
+    },
+    [audioMediaManagerService]
+  );
+
   const handlePlayerClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       e.stopPropagation();
@@ -123,13 +130,14 @@ export const SidebarAudioPlayer = () => {
       <MiniAudioPlayer
         playbackState={playbackState.state}
         name={playbackStats.name}
-        size={playbackStats.size}
         duration={playbackStats.duration}
         seekTime={seekTime}
         onPlay={handlePlay}
         onPause={handlePause}
         onStop={handleStop}
         onSeek={handleSeek}
+        playbackRate={playbackState.playbackRate || 1.0}
+        onPlaybackRateChange={handlePlaybackRateChange}
         waveform={playbackStats.waveform}
       />
     </div>

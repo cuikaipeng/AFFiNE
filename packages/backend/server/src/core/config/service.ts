@@ -1,7 +1,12 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { set } from 'lodash-es';
 
-import { ConfigFactory, EventBus, OnEvent } from '../../base';
+import {
+  ConfigFactory,
+  EventBus,
+  InvalidAppConfigInput,
+  OnEvent,
+} from '../../base';
 import { Models } from '../../models';
 import { ServerFeature } from './types';
 
@@ -60,11 +65,21 @@ export class ServerService implements OnApplicationBootstrap {
     return this.configFactory.clone();
   }
 
+  validateConfig(updates: Array<{ module: string; key: string; value: any }>) {
+    return this.configFactory.validate(updates);
+  }
+
   async updateConfig(
     user: string,
     updates: Array<{ module: string; key: string; value: any }>
   ): Promise<DeepPartial<AppConfig>> {
-    this.configFactory.validate(updates);
+    const errors = this.configFactory.validate(updates);
+
+    if (errors?.length) {
+      throw new InvalidAppConfigInput({
+        message: errors.map(error => error.message).join('\n'),
+      });
+    }
 
     const promises = await this.models.appConfig.save(
       user,
@@ -95,6 +110,13 @@ export class ServerService implements OnApplicationBootstrap {
     this.event.emit('config.changed', event);
   }
 
+  @OnEvent('config.changed')
+  onConfigChanged(event: Events['config.changed']) {
+    if ('flags' in event.updates) {
+      this.onFlagsChanged();
+    }
+  }
+
   async revalidateConfig() {
     const overrides = await this.loadDbOverrides();
     this.configFactory.override(overrides);
@@ -107,6 +129,7 @@ export class ServerService implements OnApplicationBootstrap {
     await this.event.emitAsync('config.init', {
       config: this.configFactory.config,
     });
+    this.onFlagsChanged();
   }
 
   private async loadDbOverrides() {
@@ -118,5 +141,14 @@ export class ServerService implements OnApplicationBootstrap {
     });
 
     return overrides;
+  }
+
+  private onFlagsChanged() {
+    const flags = this.configFactory.config.flags;
+    if (flags.allowGuestDemoWorkspace) {
+      this.enableFeature(ServerFeature.LocalWorkspace);
+    } else {
+      this.disableFeature(ServerFeature.LocalWorkspace);
+    }
   }
 }

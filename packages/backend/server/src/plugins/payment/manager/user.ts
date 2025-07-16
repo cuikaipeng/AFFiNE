@@ -10,6 +10,7 @@ import {
   InternalServerError,
   InvalidCheckoutParameters,
   Mutex,
+  OnEvent,
   SubscriptionAlreadyExists,
   SubscriptionPlanNotFound,
   TooManyRequest,
@@ -201,6 +202,15 @@ export class UserSubscriptionManager extends SubscriptionManager {
       where: {
         targetId: args.userId,
         plan: args.plan,
+      },
+    });
+  }
+
+  async getActiveSubscription(args: z.infer<typeof UserSubscriptionIdentity>) {
+    return this.db.subscription.findFirst({
+      where: {
+        targetId: args.userId,
+        plan: args.plan,
         status: {
           in: [SubscriptionStatus.Active, SubscriptionStatus.Trialing],
         },
@@ -242,6 +252,7 @@ export class UserSubscriptionManager extends SubscriptionManager {
         'stripeScheduleId',
         'nextBillAt',
         'canceledAt',
+        'end',
       ]),
       create: {
         targetId: userId,
@@ -256,17 +267,19 @@ export class UserSubscriptionManager extends SubscriptionManager {
     stripeSubscription,
   }: KnownStripeSubscription) {
     this.assertUserIdExists(userId);
-    this.event.emit('user.subscription.canceled', {
-      userId,
-      plan: lookupKey.plan,
-      recurring: lookupKey.recurring,
-    });
-
-    await this.db.subscription.deleteMany({
+    const result = await this.db.subscription.deleteMany({
       where: {
         stripeSubscriptionId: stripeSubscription.id,
       },
     });
+
+    if (result.count > 0) {
+      this.event.emit('user.subscription.canceled', {
+        userId,
+        plan: lookupKey.plan,
+        recurring: lookupKey.recurring,
+      });
+    }
   }
 
   async cancelSubscription(subscription: Subscription) {
@@ -679,6 +692,19 @@ export class UserSubscriptionManager extends SubscriptionManager {
   ): asserts userId is string {
     if (!userId) {
       throw new Error('user should exists for stripe subscription or invoice.');
+    }
+  }
+
+  @OnEvent('user.deleted')
+  async onUserDeleted({ id }: Events['user.deleted']) {
+    const subscription = await this.db.subscription.findFirst({
+      where: {
+        targetId: id,
+      },
+    });
+
+    if (subscription?.stripeSubscriptionId) {
+      await this.stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
     }
   }
 }

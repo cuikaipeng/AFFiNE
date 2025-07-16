@@ -4,7 +4,9 @@ import {
   deleteWorkspaceMutation,
   getWorkspaceInfoQuery,
   getWorkspacesQuery,
+  Permission,
   ServerDeploymentType,
+  ServerFeature,
 } from '@affine/graphql';
 import type {
   BlobStorage,
@@ -45,8 +47,14 @@ import {
   Service,
 } from '@toeverything/infra';
 import { isEqual } from 'lodash-es';
-import { EMPTY, map, mergeMap, Observable, switchMap } from 'rxjs';
-import { type Doc as YDoc, encodeStateAsUpdate } from 'yjs';
+import { map, Observable, switchMap, tap } from 'rxjs';
+import {
+  applyUpdate,
+  type Array as YArray,
+  Doc as YDoc,
+  encodeStateAsUpdate,
+  type Map as YMap,
+} from 'yjs';
 
 import type { Server, ServersService } from '../../cloud';
 import {
@@ -97,7 +105,7 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
   readonly flavour = this.server.id;
 
   DocStorageType =
-    BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS
+    BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS || BUILD_CONFIG.isAndroid
       ? SqliteDocStorage
       : IndexedDBDocStorage;
   DocStorageV1Type = BUILD_CONFIG.isElectron
@@ -106,7 +114,7 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
       ? IndexedDBV1DocStorage
       : undefined;
   BlobStorageType =
-    BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS
+    BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS || BUILD_CONFIG.isAndroid
       ? SqliteBlobStorage
       : IndexedDBBlobStorage;
   BlobStorageV1Type = BUILD_CONFIG.isElectron
@@ -115,11 +123,11 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
       ? IndexedDBV1BlobStorage
       : undefined;
   DocSyncStorageType =
-    BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS
+    BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS || BUILD_CONFIG.isAndroid
       ? SqliteDocSyncStorage
       : IndexedDBDocSyncStorage;
   BlobSyncStorageType =
-    BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS
+    BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS || BUILD_CONFIG.isAndroid
       ? SqliteBlobSyncStorage
       : IndexedDBBlobSyncStorage;
 
@@ -169,6 +177,7 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
 
     const docCollection = new WorkspaceImpl({
       id: workspaceId,
+      rootDoc: new YDoc({ guid: workspaceId }),
       blobSource: {
         get: async key => {
           const record = await blobStorage.get(key);
@@ -207,6 +216,13 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
           bin: encodeStateAsUpdate(subdocs),
         });
       }
+
+      const accountId = this.authService.session.account$.value?.id;
+      await this.writeInitialDocProperties(
+        workspaceId,
+        docStorage,
+        accountId ?? ''
+      );
 
       docStorage.connection.disconnect();
       blobStorage.connection.disconnect();
@@ -254,7 +270,7 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
             })),
           };
         }).pipe(
-          mergeMap(data => {
+          tap(data => {
             if (data) {
               const { accountId, workspaces } = data;
               const sorted = workspaces.sort((a, b) => {
@@ -270,7 +286,6 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
             } else {
               this.workspaces$.next([]);
             }
-            return EMPTY;
           }),
           catchErrorInto(this.error$, err => {
             logger.error('error to revalidate cloud workspaces', err);
@@ -326,8 +341,8 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
 
     if (!cloudData && !localData) {
       return {
-        isOwner: info.isOwner,
-        isAdmin: info.isAdmin,
+        isOwner: info.workspace.role === Permission.Owner,
+        isAdmin: info.workspace.role === Permission.Admin,
         isTeam: info.workspace.team,
       };
     }
@@ -342,8 +357,8 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
     return {
       name: result.name,
       avatar: result.avatar,
-      isOwner: info.isOwner,
-      isAdmin: info.isAdmin,
+      isOwner: info.workspace.role === Permission.Owner,
+      isAdmin: info.workspace.role === Permission.Admin,
       isTeam: info.workspace.team,
     };
   }
@@ -508,6 +523,19 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
                 ServerDeploymentType.Selfhosted,
             },
           },
+          indexer: this.server.config$.value.features.includes(
+            ServerFeature.Indexer
+          )
+            ? {
+                name: 'CloudIndexerStorage',
+                opts: {
+                  flavour: this.flavour,
+                  type: 'workspace',
+                  id: workspaceId,
+                  serverBaseUrl: this.server.serverMetadata.baseUrl,
+                },
+              }
+            : undefined,
         },
         v1: {
           doc: this.DocStorageV1Type
@@ -531,6 +559,45 @@ class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
         },
       },
     };
+  }
+
+  async writeInitialDocProperties(
+    workspaceId: string,
+    docStorage: DocStorage,
+    creatorId: string
+  ) {
+    try {
+      const rootDocBuffer = await docStorage.getDoc(workspaceId);
+      const rootDoc = new YDoc({ guid: workspaceId });
+      if (rootDocBuffer) {
+        applyUpdate(rootDoc, rootDocBuffer.bin);
+      }
+
+      const docIds = (
+        rootDoc.getMap('meta').get('pages') as YArray<YMap<string>>
+      )
+        ?.map(page => page.get('id'))
+        .filter(Boolean) as string[];
+
+      const propertiesDBBuffer = await docStorage.getDoc('db$docProperties');
+      const propertiesDB = new YDoc({ guid: 'db$docProperties' });
+      if (propertiesDBBuffer) {
+        applyUpdate(propertiesDB, propertiesDBBuffer.bin);
+      }
+
+      for (const docId of docIds) {
+        const docProperties = propertiesDB.getMap(docId);
+        docProperties.set('id', docId);
+        docProperties.set('createdBy', creatorId);
+      }
+
+      await docStorage.pushDocUpdate({
+        docId: 'db$docProperties',
+        bin: encodeStateAsUpdate(propertiesDB),
+      });
+    } catch (error) {
+      logger.error('error to write initial doc properties', error);
+    }
   }
 
   private waitForLoaded() {

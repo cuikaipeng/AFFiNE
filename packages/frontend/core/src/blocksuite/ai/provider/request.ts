@@ -1,7 +1,7 @@
 import { partition } from 'lodash-es';
 
 import { AIProvider } from './ai-provider';
-import type { CopilotClient } from './copilot-client';
+import { type CopilotClient, Endpoint } from './copilot-client';
 import { delay, toTextStream } from './event-source';
 
 const TIMEOUT = 50000;
@@ -16,9 +16,12 @@ export type TextToTextOptions = {
   stream?: boolean;
   signal?: AbortSignal;
   retry?: boolean;
-  workflow?: boolean;
+  endpoint?: Endpoint;
   isRootSession?: boolean;
   postfix?: (text: string) => string;
+  reasoning?: boolean;
+  webSearch?: boolean;
+  modelId?: string;
 };
 
 export type ToImageOptions = TextToTextOptions & {
@@ -111,8 +114,11 @@ export function textToText({
   signal,
   timeout = TIMEOUT,
   retry = false,
-  workflow = false,
+  endpoint = Endpoint.Stream,
   postfix,
+  reasoning,
+  webSearch,
+  modelId,
 }: TextToTextOptions) {
   let messageId: string | undefined;
 
@@ -132,8 +138,11 @@ export function textToText({
           {
             sessionId,
             messageId,
+            reasoning,
+            webSearch,
+            modelId,
           },
-          workflow ? 'workflow' : undefined
+          endpoint
         );
         AIProvider.LAST_ACTION_SESSIONID = sessionId;
 
@@ -191,6 +200,9 @@ export function textToText({
         return client.chatText({
           sessionId,
           messageId,
+          reasoning,
+          webSearch,
+          modelId,
         });
       })(),
     ]);
@@ -207,7 +219,7 @@ export function toImage({
   signal,
   timeout = TIMEOUT,
   retry = false,
-  workflow = false,
+  endpoint,
   client,
 }: ToImageOptions) {
   let messageId: string | undefined;
@@ -226,7 +238,7 @@ export function toImage({
         sessionId,
         messageId,
         seed,
-        workflow ? 'workflow' : undefined
+        endpoint
       );
       AIProvider.LAST_ACTION_SESSIONID = sessionId;
 

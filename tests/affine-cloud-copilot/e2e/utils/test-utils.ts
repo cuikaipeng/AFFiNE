@@ -1,6 +1,7 @@
+import { skipOnboarding } from '@affine-test/kit/playwright';
 import {
   createRandomAIUser,
-  enableCloudWorkspace,
+  switchDefaultChatModel,
 } from '@affine-test/kit/utils/cloud';
 import { openHomePage, setCoreUrl } from '@affine-test/kit/utils/load-page';
 import {
@@ -55,13 +56,20 @@ export class TestUtils {
     };
   }
 
-  public async setupTestEnvironment(page: Page, enableCloud: boolean = true) {
-    await openHomePage(page);
+  public async createNewPage(page: Page) {
     await clickNewPageButton(page);
     await waitForEditorLoad(page);
-    if (enableCloud) {
-      await enableCloudWorkspace(page);
-    }
+  }
+
+  public async setupTestEnvironment(
+    page: Page,
+    defaultModel = 'gemini-2.5-flash'
+  ) {
+    await switchDefaultChatModel(defaultModel);
+
+    await skipOnboarding(page.context());
+    await openHomePage(page);
+    await this.createNewPage(page);
   }
 
   public async createTestWorkspace(page: Page, name: string = 'test') {

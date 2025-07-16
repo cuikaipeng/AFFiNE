@@ -101,22 +101,22 @@ test('should find updates by spaceId and docId', async t => {
     {
       spaceId: workspace.id,
       docId,
-      blob: Buffer.from('blob1'),
+      blob: Uint8Array.from([1, 2, 3]),
       timestamp: Date.now(),
       editorId: user.id,
     },
     {
       spaceId: workspace.id,
       docId,
-      blob: Buffer.from('blob2'),
+      blob: Uint8Array.from([4, 5, 6]),
       timestamp: Date.now() + 1000,
       editorId: user.id,
     },
   ]);
   const foundUpdates = await t.context.doc.findUpdates(workspace.id, docId);
   t.is(foundUpdates.length, 2);
-  t.deepEqual(foundUpdates[0].blob, Buffer.from('blob1'));
-  t.deepEqual(foundUpdates[1].blob, Buffer.from('blob2'));
+  t.deepEqual(foundUpdates[0].blob, Uint8Array.from([1, 2, 3]));
+  t.deepEqual(foundUpdates[1].blob, Uint8Array.from([4, 5, 6]));
 
   let count = await t.context.doc.getUpdateCount(workspace.id, docId);
   t.is(count, 2);
@@ -199,7 +199,7 @@ test('should upsert a doc', async t => {
   const snapshot = {
     spaceId: workspace.id,
     docId: randomUUID(),
-    blob: Buffer.from('blob1'),
+    blob: Uint8Array.from([1, 2, 3]),
     timestamp: Date.now(),
     editorId: user.id,
   };
@@ -658,4 +658,84 @@ test('should find metas by workspaceIds and docIds', async t => {
   );
 });
 
+test('should get doc info', async t => {
+  const docId = randomUUID();
+  const snapshot = {
+    spaceId: workspace.id,
+    docId,
+    blob: Buffer.from('blob1'),
+    timestamp: Date.now(),
+    editorId: user.id,
+  };
+
+  await t.context.doc.upsert(snapshot);
+  await t.context.doc.upsertMeta(workspace.id, docId, {
+    title: 'test title',
+    summary: 'test summary',
+  });
+
+  const docInfo = await t.context.doc.getDocInfo(workspace.id, docId);
+
+  t.like(docInfo, {
+    workspaceId: workspace.id,
+    docId,
+    updatedAt: new Date(snapshot.timestamp),
+    creatorId: user.id,
+    lastUpdaterId: user.id,
+    title: 'test title',
+    summary: 'test summary',
+  });
+});
+
+test('should paginate docs info', async t => {
+  const docId1 = randomUUID();
+  const docId2 = randomUUID();
+  const docId3 = randomUUID();
+  const snapshot1 = {
+    spaceId: workspace.id,
+    docId: docId1,
+    blob: Buffer.from('blob1'),
+    timestamp: Date.now(),
+    editorId: user.id,
+  };
+  const snapshot2 = {
+    spaceId: workspace.id,
+    docId: docId2,
+    blob: Buffer.from('blob2'),
+    timestamp: Date.now() + 1,
+    editorId: user.id,
+  };
+  const snapshot3 = {
+    spaceId: workspace.id,
+    docId: docId3,
+    blob: Buffer.from('blob3'),
+    timestamp: Date.now() + 2,
+    editorId: user.id,
+  };
+  await t.context.doc.upsertMeta(workspace.id, docId1);
+  await t.context.doc.upsertMeta(workspace.id, docId2);
+  await t.context.doc.upsertMeta(workspace.id, docId3);
+  await t.context.doc.upsert(snapshot1);
+  await t.context.doc.upsert(snapshot2);
+  await t.context.doc.upsert(snapshot3);
+
+  let [count, docs] = await t.context.doc.paginateDocInfo(workspace.id, {
+    first: 1,
+    offset: 0,
+  });
+
+  t.is(count, 3);
+  t.is(docs.length, 1);
+  t.is(docs[0].docId, docId1);
+
+  [count, docs] = await t.context.doc.paginateDocInfo(workspace.id, {
+    first: 1,
+    offset: 0,
+    after: docs[0].createdAt.toISOString(),
+  });
+
+  t.is(count, 3);
+  t.is(docs.length, 1);
+  t.is(docs[0].docId, docId2);
+});
 // #endregion

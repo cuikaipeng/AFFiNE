@@ -84,11 +84,11 @@ export class AIPanelInput extends SignalWatcher(WithDisposable(LitElement)) {
       }
     }
 
-    .arrow[data-active] {
+    .arrow[data-active='true'] {
       background: ${unsafeCSSVarV2('icon/activated')};
     }
 
-    .arrow[data-active]:hover {
+    .arrow[data-active='true']:hover {
       cursor: pointer;
     }
 
@@ -140,7 +140,7 @@ export class AIPanelInput extends SignalWatcher(WithDisposable(LitElement)) {
         )};
       }
 
-      .arrow[data-active] {
+      .arrow[data-active='true'] {
         background: ${unsafeCSS(
           lightCssVariablesV2['--affine-v2-icon-activated']
         )};
@@ -178,7 +178,7 @@ export class AIPanelInput extends SignalWatcher(WithDisposable(LitElement)) {
         )};
       }
 
-      .arrow[data-active] {
+      .arrow[data-active='true'] {
         background: ${unsafeCSS(
           darkCssVariablesV2['--affine-v2-icon-activated']
         )};
@@ -196,13 +196,8 @@ export class AIPanelInput extends SignalWatcher(WithDisposable(LitElement)) {
 
     this.onInput?.(this.textarea.value);
     const value = this.textarea.value.trim();
-    if (value.length > 0) {
-      this._arrow.dataset.active = '';
-      this._hasContent = true;
-    } else {
-      delete this._arrow.dataset.active;
-      this._hasContent = false;
-    }
+    this._hasContent = value.length > 0;
+    this._arrow.dataset.active = String(this._hasContent);
   };
 
   private readonly _onKeyDown = (e: KeyboardEvent) => {
@@ -256,20 +251,21 @@ export class AIPanelInput extends SignalWatcher(WithDisposable(LitElement)) {
                 @pointerdown=${stopPropagation}
               >
                 ${PublishIcon()}
-                <affine-tooltip .offset=${12}
-                  >Toggle Network Search</affine-tooltip
-                >
+                <affine-tooltip .offsetY=${12}>
+                  Toggle Network Search
+                </affine-tooltip>
               </div>
             `
           : nothing}
         <div
           class="arrow"
+          data-testid="ai-panel-input-send"
           @click=${this._sendToAI}
           @pointerdown=${stopPropagation}
         >
           ${SendIcon()}
           ${this._hasContent
-            ? html`<affine-tooltip .offset=${12}>Send to AI</affine-tooltip>`
+            ? html`<affine-tooltip .offsetY=${12}>Send to AI</affine-tooltip>`
             : nothing}
         </div>
       </div>

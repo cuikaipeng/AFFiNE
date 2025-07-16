@@ -7,13 +7,16 @@ import { DocStorageModule } from '../../core/doc';
 import { FeatureModule } from '../../core/features';
 import { PermissionModule } from '../../core/permission';
 import { QuotaModule } from '../../core/quota';
+import { WorkspaceModule } from '../../core/workspaces';
+import { IndexerModule } from '../indexer';
 import {
-  CopilotContextDocJob,
   CopilotContextResolver,
   CopilotContextRootResolver,
   CopilotContextService,
 } from './context';
 import { CopilotController } from './controller';
+import { CopilotCronJobs } from './cron';
+import { CopilotEmbeddingJob } from './embedding';
 import { ChatMessageCache } from './message';
 import { PromptService } from './prompt';
 import { CopilotProviderFactory, CopilotProviders } from './providers';
@@ -29,6 +32,11 @@ import {
   CopilotTranscriptionService,
 } from './transcript';
 import { CopilotWorkflowExecutors, CopilotWorkflowService } from './workflow';
+import {
+  CopilotWorkspaceEmbeddingConfigResolver,
+  CopilotWorkspaceEmbeddingResolver,
+  CopilotWorkspaceService,
+} from './workspace';
 
 @Module({
   imports: [
@@ -37,6 +45,8 @@ import { CopilotWorkflowExecutors, CopilotWorkflowService } from './workflow';
     QuotaModule,
     PermissionModule,
     ServerConfigModule,
+    WorkspaceModule,
+    IndexerModule,
   ],
   providers: [
     // providers
@@ -54,10 +64,16 @@ import { CopilotWorkflowExecutors, CopilotWorkflowService } from './workflow';
     // context
     CopilotContextResolver,
     CopilotContextService,
-    CopilotContextDocJob,
+    // jobs
+    CopilotEmbeddingJob,
+    CopilotCronJobs,
     // transcription
     CopilotTranscriptionService,
     CopilotTranscriptionResolver,
+    // workspace embeddings
+    CopilotWorkspaceService,
+    CopilotWorkspaceEmbeddingResolver,
+    CopilotWorkspaceEmbeddingConfigResolver,
     // gql resolvers
     UserCopilotResolver,
     PromptsManagementResolver,

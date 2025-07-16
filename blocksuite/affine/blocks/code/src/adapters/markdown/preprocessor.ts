@@ -2,6 +2,7 @@ import {
   type MarkdownAdapterPreprocessor,
   MarkdownPreprocessorExtension,
 } from '@blocksuite/affine-shared/adapters';
+import { isValidUrl } from '@blocksuite/affine-shared/utils';
 
 const codePreprocessor: MarkdownAdapterPreprocessor = {
   name: 'code',
@@ -47,20 +48,19 @@ const codePreprocessor: MarkdownAdapterPreprocessor = {
         }
 
         trimmedLine = trimmedLine.trimEnd();
-        if (!trimmedLine.startsWith('<') && !trimmedLine.endsWith('>')) {
+        if (
+          !trimmedLine.startsWith('<') &&
+          !trimmedLine.endsWith('>') &&
+          !trimmedLine.includes(' ')
+        ) {
           // check if it is a url link and wrap it with the angle brackets
           // sometimes the url includes emphasis `_` that will break URL parsing
           //
           // eg. /MuawcBMT1Mzvoar09-_66?mode=page&blockIds=rL2_GXbtLU2SsJVfCSmh_
           // https://www.markdownguide.org/basic-syntax/#urls-and-email-addresses
-          try {
-            const valid =
-              URL.canParse?.(trimmedLine) ?? Boolean(new URL(trimmedLine));
-            if (valid) {
-              return `<${trimmedLine}>`;
-            }
-          } catch (err) {
-            console.log(err);
+          const valid = isValidUrl(trimmedLine);
+          if (valid) {
+            return `<${trimmedLine}>`;
           }
         }
 

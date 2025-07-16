@@ -1,5 +1,11 @@
 import { SurfaceBlockSchema } from '@blocksuite/affine/blocks/surface';
-import { MindMapView } from '@blocksuite/affine/gfx/mindmap';
+import { ConnectorElementRendererExtension } from '@blocksuite/affine/gfx/connector';
+import {
+  MindmapElementRendererExtension,
+  MindMapView,
+} from '@blocksuite/affine/gfx/mindmap';
+import { ShapeElementRendererExtension } from '@blocksuite/affine/gfx/shape';
+import { TextElementRendererExtension } from '@blocksuite/affine/gfx/text';
 import { RootBlockSchema } from '@blocksuite/affine/model';
 import {
   DocModeService,
@@ -23,6 +29,10 @@ export const MiniMindmapSpecs: ExtensionType[] = [
   MindMapView,
   MindmapSurfaceBlockService,
   BlockViewExtension('affine:surface', literal`mini-mindmap-surface-block`),
+  TextElementRendererExtension,
+  MindmapElementRendererExtension,
+  ShapeElementRendererExtension,
+  ConnectorElementRendererExtension,
 ];
 
 export const MiniMindmapSchema: z.infer<typeof BlockSchema>[] = [

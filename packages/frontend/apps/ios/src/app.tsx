@@ -1,3 +1,4 @@
+import { getStoreManager } from '@affine/core/blocksuite/manager/store';
 import { AffineContext } from '@affine/core/components/context';
 import { AppFallback } from '@affine/core/mobile/components/app-fallback';
 import { configureMobileModules } from '@affine/core/mobile/modules';
@@ -38,14 +39,13 @@ import { configureBrowserWorkspaceFlavours } from '@affine/core/modules/workspac
 import { getWorkerUrl } from '@affine/env/worker';
 import { I18n } from '@affine/i18n';
 import { StoreManagerClient } from '@affine/nbstore/worker/client';
-import { getMarkdownAdapterExtensions } from '@blocksuite/affine/adapters';
-import { MarkdownTransformer } from '@blocksuite/affine/blocks/root';
 import { Container } from '@blocksuite/affine/global/di';
 import {
   docLinkBaseURLMiddleware,
   MarkdownAdapter,
   titleMiddleware,
 } from '@blocksuite/affine/shared/adapters';
+import { MarkdownTransformer } from '@blocksuite/affine/widgets/linked-doc';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Haptics } from '@capacitor/haptics';
@@ -53,6 +53,7 @@ import { Keyboard, KeyboardStyle } from '@capacitor/keyboard';
 import { Framework, FrameworkRoot, getCurrentStore } from '@toeverything/infra';
 import { OpClient } from '@toeverything/infra/op';
 import { AsyncCall } from 'async-call-rpc';
+import { AppTrackingTransparency } from 'capacitor-plugin-app-tracking-transparency';
 import { useTheme } from 'next-themes';
 import { Suspense, useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
@@ -262,9 +263,12 @@ const frameworkProvider = framework.provider();
     const snapshot = transformer.docToSnapshot(blockSuiteDoc);
 
     const container = new Container();
-    getMarkdownAdapterExtensions().forEach(ext => {
-      ext.setup(container);
-    });
+    getStoreManager()
+      .config.init()
+      .value.get('store')
+      .forEach(ext => {
+        ext.setup(container);
+      });
     const provider = container.provider();
 
     const adapter = new MarkdownAdapter(transformer, provider);
@@ -306,6 +310,7 @@ const frameworkProvider = framework.provider();
       collection: workspace.docCollection,
       schema: getAFFiNEWorkspaceSchema(),
       markdown,
+      extensions: getStoreManager().config.init().value.get('store'),
     });
     const docsService = workspace.scope.get(DocsService);
     if (docId) {
@@ -337,6 +342,7 @@ CapacitorApp.addListener('appUrlOpen', ({ url }) => {
   if (urlObj.hostname === 'authentication') {
     const method = urlObj.searchParams.get('method');
     const payload = JSON.parse(urlObj.searchParams.get('payload') ?? 'false');
+    const serverBaseUrl = urlObj.searchParams.get('server');
 
     if (
       !method ||
@@ -347,9 +353,18 @@ CapacitorApp.addListener('appUrlOpen', ({ url }) => {
       return;
     }
 
-    const authService = frameworkProvider
+    let authService = frameworkProvider
       .get(DefaultServerService)
       .server.scope.get(AuthService);
+
+    if (serverBaseUrl) {
+      const serversService = frameworkProvider.get(ServersService);
+      const server = serversService.getServerByBaseUrl(serverBaseUrl);
+      if (server) {
+        authService = server.scope.get(AuthService);
+      }
+    }
+
     if (method === 'oauth') {
       authService
         .signInOauth(payload.code, payload.state, payload.provider)
@@ -362,6 +377,10 @@ CapacitorApp.addListener('appUrlOpen', ({ url }) => {
   }
 }).catch(e => {
   console.error(e);
+});
+
+AppTrackingTransparency.requestPermission().catch(e => {
+  console.error('Failed to request app tracking transparency permission', e);
 });
 
 const KeyboardThemeProvider = () => {

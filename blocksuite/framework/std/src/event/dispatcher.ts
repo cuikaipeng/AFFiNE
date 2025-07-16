@@ -46,6 +46,7 @@ const eventNames = [
 
   'keyDown',
   'keyUp',
+  'keyPress',
 
   'selectionChange',
   'compositionStart',
@@ -219,6 +220,12 @@ export class UIEventDispatcher extends LifeCycleWatcher {
 
       this._setActive(false);
     });
+    // When the document is hidden, the event dispatcher should be inactive
+    this.disposables.addFromEvent(document, 'visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        this._setActive(false);
+      }
+    });
   }
 
   private _buildEventScopeBySelection(name: EventName) {
@@ -298,7 +305,7 @@ export class UIEventDispatcher extends LifeCycleWatcher {
     return (
       element instanceof HTMLInputElement ||
       element instanceof HTMLTextAreaElement ||
-      (element instanceof EditorHost && !element.doc.readonly) ||
+      (element instanceof EditorHost && !element.store.readonly) ||
       (element as HTMLElement).isContentEditable
     );
   }

@@ -14,7 +14,7 @@ import { expect } from '@playwright/test';
 import stringify from 'json-stable-stringify';
 import lz from 'lz-string';
 
-import { ZERO_WIDTH_SPACE } from '../inline-editor.js';
+import { ZERO_WIDTH_FOR_EMPTY_LINE } from '../inline-editor.js';
 import { currentEditorIndex } from '../multiple-editor.js';
 import {
   pressArrowRight,
@@ -151,6 +151,8 @@ export async function enterPlaygroundRoom(
         'Running frontend commit',
         // Github timeout:
         'Failed to load resource: the server responded with a status of 403',
+        // font download warning:
+        '[JavaScript Warning: "downloadable font:',
       ].some(text => message.text().startsWith(text))
     ) {
       return;
@@ -390,7 +392,9 @@ export async function initKanbanViewState(
         return rowId;
       });
       config.columns.forEach(column => {
-        const columnId = datasource.propertyAdd('end', column.type);
+        const columnId = datasource.propertyAdd('end', {
+          type: column.type,
+        });
         if (!columnId) {
           return;
         }
@@ -767,14 +771,11 @@ export async function pasteContent(
 
 export async function pasteTestImage(page: Page) {
   await page.evaluate(async () => {
-    const imageBlob = await fetch(`${location.origin}/test-card-1.png`).then(
-      response => response.blob()
-    );
-
-    const imageFile = new File([imageBlob], 'test-card-1.png', {
+    const resp = await fetch(`${location.origin}/test-card-1.png`);
+    const blob = await resp.blob();
+    const file = new File([blob], 'test-card-1.png', {
       type: 'image/png',
     });
-
     const e = new ClipboardEvent('paste', {
       clipboardData: new DataTransfer(),
     });
@@ -784,7 +785,7 @@ export async function pasteTestImage(page: Page) {
       value: document,
     });
 
-    e.clipboardData?.items.add(imageFile);
+    e.clipboardData?.items.add(file);
     document.dispatchEvent(e);
   });
   await waitNextFrame(page);
@@ -992,18 +993,6 @@ export const getCenterPositionByLocator: (
   };
 };
 
-/**
- * @deprecated Use `page.locator(selector).boundingBox()` instead
- */
-export const getBoundingClientRect: (
-  page: Page,
-  selector: string
-) => Promise<DOMRect> = async (page: Page, selector: string) => {
-  return page.evaluate((selector: string) => {
-    return document.querySelector(selector)?.getBoundingClientRect() as DOMRect;
-  }, selector);
-};
-
 export async function getBoundingBox(locator: Locator) {
   const box = await locator.boundingBox();
   if (!box) throw new Error('Missing column box');
@@ -1054,7 +1043,7 @@ export async function getIndexCoordinate(
 }
 
 export function inlineEditorInnerTextToString(innerText: string): string {
-  return innerText.replace(ZERO_WIDTH_SPACE, '').trim();
+  return innerText.replace(ZERO_WIDTH_FOR_EMPTY_LINE, '').trim();
 }
 
 export async function focusTitle(page: Page) {
@@ -1140,7 +1129,7 @@ export async function initImageState(page: Page, prependParagraph = false) {
     const imageBlob = await fetch(`${location.origin}/test-card-1.png`).then(
       response => response.blob()
     );
-    const storage = pageRoot.doc.blobSync;
+    const storage = pageRoot.store.blobSync;
     const sourceId = await storage.set(imageBlob);
     if (prepend) {
       doc.addBlock('affine:paragraph', {}, noteId);

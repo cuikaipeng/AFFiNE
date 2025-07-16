@@ -166,6 +166,7 @@ export class WorkspaceSubscriptionManager extends SubscriptionManager {
           'nextBillAt',
           'canceledAt',
           'quantity',
+          'end',
         ]),
       },
       create: {
@@ -187,18 +188,30 @@ export class WorkspaceSubscriptionManager extends SubscriptionManager {
       );
     }
 
-    this.event.emit('workspace.subscription.canceled', {
-      workspaceId,
-      plan: lookupKey.plan,
-      recurring: lookupKey.recurring,
-    });
-
-    await this.db.subscription.deleteMany({
+    const result = await this.db.subscription.deleteMany({
       where: { stripeSubscriptionId: stripeSubscription.id },
     });
+
+    if (result.count > 0) {
+      this.event.emit('workspace.subscription.canceled', {
+        workspaceId,
+        plan: lookupKey.plan,
+        recurring: lookupKey.recurring,
+      });
+    }
   }
 
   getSubscription(identity: z.infer<typeof WorkspaceSubscriptionIdentity>) {
+    return this.db.subscription.findFirst({
+      where: {
+        targetId: identity.workspaceId,
+      },
+    });
+  }
+
+  getActiveSubscription(
+    identity: z.infer<typeof WorkspaceSubscriptionIdentity>
+  ) {
     return this.db.subscription.findFirst({
       where: {
         targetId: identity.workspaceId,
@@ -272,18 +285,21 @@ export class WorkspaceSubscriptionManager extends SubscriptionManager {
   }
 
   @OnEvent('workspace.members.updated')
-  async onMembersUpdated({
-    workspaceId,
-    count,
-  }: Events['workspace.members.updated']) {
-    const subscription = await this.getSubscription({
+  async onMembersUpdated({ workspaceId }: Events['workspace.members.updated']) {
+    const count = await this.models.workspaceUser.chargedCount(workspaceId);
+    const subscription = await this.getActiveSubscription({
       plan: SubscriptionPlan.Team,
       workspaceId,
     });
 
-    if (!subscription || !subscription.stripeSubscriptionId) {
+    if (
+      !subscription ||
+      !subscription.stripeSubscriptionId ||
+      count === subscription.quantity
+    ) {
       return;
     }
+
     const stripeSubscription = await this.stripe.subscriptions.retrieve(
       subscription.stripeSubscriptionId
     );

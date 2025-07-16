@@ -4,6 +4,9 @@ import {
   TableModelFlavour,
 } from '@blocksuite/affine-model';
 import {
+  CalloutAdmonitionType,
+  CalloutExportStyle,
+  calloutMarkdownExportMiddleware,
   embedSyncedDocMiddleware,
   MarkdownAdapter,
 } from '@blocksuite/affine-shared/adapters';
@@ -2396,6 +2399,9 @@ World!
                           reference: {
                             type: 'url',
                             url: 'https://www.example.com',
+                            favicon: 'https://www.example.com/favicon.ico',
+                            title: 'Example Domain',
+                            description: 'Example Domain',
                           },
                         },
                       },
@@ -2437,7 +2443,7 @@ World!
     };
 
     const markdown =
-      'aaa[^1][^2][^3]\n\n[^1]: {"type":"url","url":"https%3A%2F%2Fwww.example.com"}\n\n[^2]: {"type":"doc","docId":"deadbeef"}\n\n[^3]: {"type":"attachment","blobId":"abcdefg","fileName":"test.txt","fileType":"text/plain"}\n';
+      'aaa[^1][^2][^3]\n\n[^1]: {"type":"url","url":"https%3A%2F%2Fwww.example.com","favicon":"https%3A%2F%2Fwww.example.com%2Ffavicon.ico","title":"Example Domain","description":"Example Domain"}\n\n[^2]: {"type":"doc","docId":"deadbeef"}\n\n[^3]: {"type":"attachment","blobId":"abcdefg","fileName":"test.txt","fileType":"text/plain"}\n';
 
     const mdAdapter = new MarkdownAdapter(createJob(), provider);
     const target = await mdAdapter.fromBlockSnapshot({
@@ -2445,206 +2451,549 @@ World!
     });
     expect(target.file).toBe(markdown);
   });
+
+  describe('callout', () => {
+    test('without export middleware', async () => {
+      const blockSnapshot: BlockSnapshot = {
+        type: 'block',
+        id: 'block:vu6SK6WJpW',
+        flavour: 'affine:page',
+        props: {
+          title: {
+            '$blocksuite:internal:text$': true,
+            delta: [],
+          },
+        },
+        children: [
+          {
+            type: 'block',
+            id: 'block:Tk4gSPocAt',
+            flavour: 'affine:surface',
+            props: {
+              elements: {},
+            },
+            children: [],
+          },
+          {
+            type: 'block',
+            id: 'block:WfnS5ZDCJT',
+            flavour: 'affine:note',
+            props: {
+              xywh: '[0,0,800,95]',
+              background: DefaultTheme.noteBackgrounColor,
+              index: 'a0',
+              hidden: false,
+              displayMode: NoteDisplayMode.DocAndEdgeless,
+            },
+            children: [
+              {
+                type: 'block',
+                id: 'block:8hOLxad5Fv',
+                flavour: 'affine:callout',
+                props: {
+                  emoji: '💡',
+                },
+                children: [
+                  {
+                    type: 'block',
+                    id: 'block:8hOLxad5Fv',
+                    flavour: 'affine:paragraph',
+                    props: {
+                      type: 'text',
+                      text: {
+                        '$blocksuite:internal:text$': true,
+                        delta: [{ insert: 'First callout' }],
+                      },
+                    },
+                    children: [],
+                  },
+                ],
+              },
+              {
+                type: 'block',
+                id: 'block:8hOLxadvdv',
+                flavour: 'affine:callout',
+                props: {
+                  emoji: '',
+                },
+                children: [
+                  {
+                    type: 'block',
+                    id: 'block:8hOLxad5Fv',
+                    flavour: 'affine:paragraph',
+                    props: {
+                      type: 'text',
+                      text: {
+                        '$blocksuite:internal:text$': true,
+                        delta: [
+                          { insert: 'Warning second callout without emoji' },
+                        ],
+                      },
+                    },
+                    children: [],
+                  },
+                  {
+                    type: 'block',
+                    id: 'block:8hOLxad5Fv',
+                    flavour: 'affine:paragraph',
+                    props: {
+                      type: 'text',
+                      text: {
+                        '$blocksuite:internal:text$': true,
+                        delta: [{ insert: 'Text in second callout' }],
+                      },
+                    },
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const markdown = `> \\[!💡]
+>
+> First callout
+
+> \\[!]
+>
+> Warning second callout without emoji
+>
+> Text in second callout
+`;
+
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const target = await mdAdapter.fromBlockSnapshot({
+        snapshot: blockSnapshot,
+      });
+      expect(target.file).toBe(markdown);
+    });
+
+    test('with export middleware', async () => {
+      const blockSnapshot: BlockSnapshot = {
+        type: 'block',
+        id: 'block:vu6SK6WJpW',
+        flavour: 'affine:page',
+        props: {
+          title: {
+            '$blocksuite:internal:text$': true,
+            delta: [],
+          },
+        },
+        children: [
+          {
+            type: 'block',
+            id: 'block:Tk4gSPocAt',
+            flavour: 'affine:surface',
+            props: {
+              elements: {},
+            },
+            children: [],
+          },
+          {
+            type: 'block',
+            id: 'block:WfnS5ZDCJT',
+            flavour: 'affine:note',
+            props: {
+              xywh: '[0,0,800,95]',
+              background: DefaultTheme.noteBackgrounColor,
+              index: 'a0',
+              hidden: false,
+              displayMode: NoteDisplayMode.DocAndEdgeless,
+            },
+            children: [
+              {
+                type: 'block',
+                id: 'block:8hOLxad5Fv',
+                flavour: 'affine:callout',
+                props: {
+                  emoji: '💡',
+                },
+                children: [
+                  {
+                    type: 'block',
+                    id: 'block:8hOLxad5Fv',
+                    flavour: 'affine:paragraph',
+                    props: {
+                      type: 'text',
+                      text: {
+                        '$blocksuite:internal:text$': true,
+                        delta: [
+                          { insert: 'Callout that does not have a title' },
+                        ],
+                      },
+                    },
+                    children: [],
+                  },
+                ],
+              },
+              {
+                type: 'block',
+                id: 'block:8hOLxadvdv',
+                flavour: 'affine:callout',
+                props: {
+                  emoji: '',
+                },
+                children: [
+                  {
+                    type: 'block',
+                    id: 'block:8hOLxad5Fv',
+                    flavour: 'affine:paragraph',
+                    props: {
+                      type: 'text',
+                      text: {
+                        '$blocksuite:internal:text$': true,
+                        delta: [
+                          {
+                            insert:
+                              'Warning callout with custom title and multiple paragraphs',
+                          },
+                        ],
+                      },
+                    },
+                    children: [],
+                  },
+                  {
+                    type: 'block',
+                    id: 'block:8hOLxad5Fv',
+                    flavour: 'affine:paragraph',
+                    props: {
+                      type: 'text',
+                      text: {
+                        '$blocksuite:internal:text$': true,
+                        delta: [{ insert: 'Text in second callout' }],
+                      },
+                    },
+                    children: [],
+                  },
+                ],
+              },
+              {
+                type: 'block',
+                id: 'block:8hOLxad5Fv',
+                flavour: 'affine:callout',
+                props: {
+                  emoji: '💡',
+                },
+                children: [
+                  {
+                    type: 'block',
+                    id: 'block:8hOLxad5Fv',
+                    flavour: 'affine:paragraph',
+                    props: {
+                      type: 'text',
+                      text: {
+                        '$blocksuite:internal:text$': true,
+                        delta: [
+                          { insert: 'details' },
+                          { insert: ' ' },
+                          { insert: '\nText in details callout with new line' },
+                        ],
+                      },
+                    },
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const markdown = `::: info
+
+Callout that does not have a title
+
+:::
+
+::: warning callout with custom title and multiple paragraphs
+
+Text in second callout
+
+:::
+
+::: details
+
+Text in details callout with new line
+
+:::
+`;
+
+      const mdAdapter = new MarkdownAdapter(
+        createJob([
+          calloutMarkdownExportMiddleware({
+            style: CalloutExportStyle.Admonitions,
+            admonitionType: CalloutAdmonitionType.Info,
+          }),
+        ]),
+        provider
+      );
+      const target = await mdAdapter.fromBlockSnapshot({
+        snapshot: blockSnapshot,
+      });
+      expect(target.file).toBe(markdown);
+    });
+  });
 });
 
 describe('markdown to snapshot', () => {
-  test('code', async () => {
-    const markdown = '```python\nimport this\n```\n';
+  describe('code', () => {
+    test('markdown code block', async () => {
+      const markdown = '```python\nimport this\n```\n';
 
-    const blockSnapshot: BlockSnapshot = {
-      type: 'block',
-      id: 'matchesReplaceMap[0]',
-      flavour: 'affine:note',
-      props: {
-        xywh: '[0,0,800,95]',
-        background: DefaultTheme.noteBackgrounColor,
-        index: 'a0',
-        hidden: false,
-        displayMode: NoteDisplayMode.DocAndEdgeless,
-      },
-      children: [
-        {
-          type: 'block',
-          id: 'matchesReplaceMap[1]',
-          flavour: 'affine:code',
-          props: {
-            language: 'python',
-            wrap: false,
-            text: {
-              '$blocksuite:internal:text$': true,
-              delta: [
-                {
-                  insert: 'import this',
-                },
-              ],
-            },
-          },
-          children: [],
+      const blockSnapshot: BlockSnapshot = {
+        type: 'block',
+        id: 'matchesReplaceMap[0]',
+        flavour: 'affine:note',
+        props: {
+          xywh: '[0,0,800,95]',
+          background: DefaultTheme.noteBackgrounColor,
+          index: 'a0',
+          hidden: false,
+          displayMode: NoteDisplayMode.DocAndEdgeless,
         },
-      ],
-    };
-
-    const mdAdapter = new MarkdownAdapter(createJob(), provider);
-    const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
-      file: markdown,
-    });
-    expect(nanoidReplacement(rawBlockSnapshot)).toEqual(blockSnapshot);
-  });
-
-  test('code with indentation 1 - slice', async () => {
-    const markdown = '```python\n    import this\n```';
-
-    const sliceSnapshot: SliceSnapshot = {
-      type: 'slice',
-      content: [
-        {
-          type: 'block',
-          id: 'matchesReplaceMap[0]',
-          flavour: 'affine:note',
-          props: {
-            xywh: '[0,0,800,95]',
-            background: DefaultTheme.noteBackgrounColor,
-            index: 'a0',
-            hidden: false,
-            displayMode: 'both',
-          },
-          children: [
-            {
-              type: 'block',
-              id: 'matchesReplaceMap[1]',
-              flavour: 'affine:code',
-              props: {
-                language: 'python',
-                wrap: false,
-                text: {
-                  '$blocksuite:internal:text$': true,
-                  delta: [
-                    {
-                      insert: '    import this',
-                    },
-                  ],
-                },
+        children: [
+          {
+            type: 'block',
+            id: 'matchesReplaceMap[1]',
+            flavour: 'affine:code',
+            props: {
+              language: 'python',
+              wrap: false,
+              text: {
+                '$blocksuite:internal:text$': true,
+                delta: [
+                  {
+                    insert: 'import this',
+                  },
+                ],
               },
-              children: [],
             },
-          ],
-        },
-      ],
-      workspaceId: '',
-      pageId: '',
-    };
-
-    const mdAdapter = new MarkdownAdapter(createJob(), provider);
-    const rawSliceSnapshot = await mdAdapter.toSliceSnapshot({
-      file: markdown,
-      workspaceId: '',
-      pageId: '',
-    });
-    expect(nanoidReplacement(rawSliceSnapshot!)).toEqual(sliceSnapshot);
-  });
-
-  test('code with indentation 2 - slice', async () => {
-    const markdown = '````python\n```python\n    import this\n```\n````';
-
-    const sliceSnapshot: SliceSnapshot = {
-      type: 'slice',
-      content: [
-        {
-          type: 'block',
-          id: 'matchesReplaceMap[0]',
-          flavour: 'affine:note',
-          props: {
-            xywh: '[0,0,800,95]',
-            background: DefaultTheme.noteBackgrounColor,
-            index: 'a0',
-            hidden: false,
-            displayMode: 'both',
+            children: [],
           },
-          children: [
-            {
-              type: 'block',
-              id: 'matchesReplaceMap[1]',
-              flavour: 'affine:code',
-              props: {
-                language: 'python',
-                wrap: false,
-                text: {
-                  '$blocksuite:internal:text$': true,
-                  delta: [
-                    {
-                      insert: '```python\n    import this\n```',
-                    },
-                  ],
-                },
-              },
-              children: [],
-            },
-          ],
-        },
-      ],
-      workspaceId: '',
-      pageId: '',
-    };
+        ],
+      };
 
-    const mdAdapter = new MarkdownAdapter(createJob(), provider);
-    const rawSliceSnapshot = await mdAdapter.toSliceSnapshot({
-      file: markdown,
-      workspaceId: '',
-      pageId: '',
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
+        file: markdown,
+      });
+      expect(nanoidReplacement(rawBlockSnapshot)).toEqual(blockSnapshot);
     });
-    expect(nanoidReplacement(rawSliceSnapshot!)).toEqual(sliceSnapshot);
-  });
 
-  test('code with indentation 3 - slice', async () => {
-    const markdown = '~~~~python\n````python\n    import this\n````\n~~~~';
+    test('code with indentation 1 - slice', async () => {
+      const markdown = '```python\n    import this\n```';
 
-    const sliceSnapshot: SliceSnapshot = {
-      type: 'slice',
-      content: [
-        {
-          type: 'block',
-          id: 'matchesReplaceMap[0]',
-          flavour: 'affine:note',
-          props: {
-            xywh: '[0,0,800,95]',
-            background: DefaultTheme.noteBackgrounColor,
-            index: 'a0',
-            hidden: false,
-            displayMode: 'both',
+      const sliceSnapshot: SliceSnapshot = {
+        type: 'slice',
+        content: [
+          {
+            type: 'block',
+            id: 'matchesReplaceMap[0]',
+            flavour: 'affine:note',
+            props: {
+              xywh: '[0,0,800,95]',
+              background: DefaultTheme.noteBackgrounColor,
+              index: 'a0',
+              hidden: false,
+              displayMode: 'both',
+            },
+            children: [
+              {
+                type: 'block',
+                id: 'matchesReplaceMap[1]',
+                flavour: 'affine:code',
+                props: {
+                  language: 'python',
+                  wrap: false,
+                  text: {
+                    '$blocksuite:internal:text$': true,
+                    delta: [
+                      {
+                        insert: '    import this',
+                      },
+                    ],
+                  },
+                },
+                children: [],
+              },
+            ],
           },
-          children: [
-            {
-              type: 'block',
-              id: 'matchesReplaceMap[1]',
-              flavour: 'affine:code',
-              props: {
-                language: 'python',
-                wrap: false,
-                text: {
-                  '$blocksuite:internal:text$': true,
-                  delta: [
-                    {
-                      insert: '````python\n    import this\n````',
-                    },
-                  ],
-                },
-              },
-              children: [],
-            },
-          ],
-        },
-      ],
-      workspaceId: '',
-      pageId: '',
-    };
+        ],
+        workspaceId: '',
+        pageId: '',
+      };
 
-    const mdAdapter = new MarkdownAdapter(createJob(), provider);
-    const rawSliceSnapshot = await mdAdapter.toSliceSnapshot({
-      file: markdown,
-      workspaceId: '',
-      pageId: '',
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawSliceSnapshot = await mdAdapter.toSliceSnapshot({
+        file: markdown,
+        workspaceId: '',
+        pageId: '',
+      });
+      expect(nanoidReplacement(rawSliceSnapshot!)).toEqual(sliceSnapshot);
     });
-    expect(nanoidReplacement(rawSliceSnapshot!)).toEqual(sliceSnapshot);
+
+    test('code with indentation 2 - slice', async () => {
+      const markdown = '````python\n```python\n    import this\n```\n````';
+
+      const sliceSnapshot: SliceSnapshot = {
+        type: 'slice',
+        content: [
+          {
+            type: 'block',
+            id: 'matchesReplaceMap[0]',
+            flavour: 'affine:note',
+            props: {
+              xywh: '[0,0,800,95]',
+              background: DefaultTheme.noteBackgrounColor,
+              index: 'a0',
+              hidden: false,
+              displayMode: 'both',
+            },
+            children: [
+              {
+                type: 'block',
+                id: 'matchesReplaceMap[1]',
+                flavour: 'affine:code',
+                props: {
+                  language: 'python',
+                  wrap: false,
+                  text: {
+                    '$blocksuite:internal:text$': true,
+                    delta: [
+                      {
+                        insert: '```python\n    import this\n```',
+                      },
+                    ],
+                  },
+                },
+                children: [],
+              },
+            ],
+          },
+        ],
+        workspaceId: '',
+        pageId: '',
+      };
+
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawSliceSnapshot = await mdAdapter.toSliceSnapshot({
+        file: markdown,
+        workspaceId: '',
+        pageId: '',
+      });
+      expect(nanoidReplacement(rawSliceSnapshot!)).toEqual(sliceSnapshot);
+    });
+
+    test('code with indentation 3 - slice', async () => {
+      const markdown = '~~~~python\n````python\n    import this\n````\n~~~~';
+
+      const sliceSnapshot: SliceSnapshot = {
+        type: 'slice',
+        content: [
+          {
+            type: 'block',
+            id: 'matchesReplaceMap[0]',
+            flavour: 'affine:note',
+            props: {
+              xywh: '[0,0,800,95]',
+              background: DefaultTheme.noteBackgrounColor,
+              index: 'a0',
+              hidden: false,
+              displayMode: 'both',
+            },
+            children: [
+              {
+                type: 'block',
+                id: 'matchesReplaceMap[1]',
+                flavour: 'affine:code',
+                props: {
+                  language: 'python',
+                  wrap: false,
+                  text: {
+                    '$blocksuite:internal:text$': true,
+                    delta: [
+                      {
+                        insert: '````python\n    import this\n````',
+                      },
+                    ],
+                  },
+                },
+                children: [],
+              },
+            ],
+          },
+        ],
+        workspaceId: '',
+        pageId: '',
+      };
+
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawSliceSnapshot = await mdAdapter.toSliceSnapshot({
+        file: markdown,
+        workspaceId: '',
+        pageId: '',
+      });
+      expect(nanoidReplacement(rawSliceSnapshot!)).toEqual(sliceSnapshot);
+    });
+
+    test('html block import as code block', async () => {
+      const markdown = `<div class="container">
+  <header>
+    <h1>Welcome to My Page</h1>
+    <nav>
+      <ul>
+        <li><a href="#home">Home</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main>
+    <p>This is a sample HTML content</p>
+  </main>
+</div>`;
+
+      const blockSnapshot: BlockSnapshot = {
+        type: 'block',
+        id: 'matchesReplaceMap[0]',
+        flavour: 'affine:note',
+        props: {
+          xywh: '[0,0,800,95]',
+          background: DefaultTheme.noteBackgrounColor,
+          index: 'a0',
+          hidden: false,
+          displayMode: NoteDisplayMode.DocAndEdgeless,
+        },
+        children: [
+          {
+            type: 'block',
+            id: 'matchesReplaceMap[1]',
+            flavour: 'affine:code',
+            props: {
+              language: 'html',
+              wrap: false,
+              text: {
+                '$blocksuite:internal:text$': true,
+                delta: [
+                  {
+                    insert:
+                      '<div class="container">\n  <header>\n    <h1>Welcome to My Page</h1>\n    <nav>\n      <ul>\n        <li><a href="#home">Home</a></li>\n        <li><a href="#about">About</a></li>\n      </ul>\n    </nav>\n  </header>\n  <main>\n    <p>This is a sample HTML content</p>\n  </main>\n</div>',
+                  },
+                ],
+              },
+            },
+            children: [],
+          },
+        ],
+      };
+
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
+        file: markdown,
+      });
+      expect(nanoidReplacement(rawBlockSnapshot)).toEqual(blockSnapshot);
+    });
   });
 
   test('paragraph', async () => {
@@ -3526,7 +3875,7 @@ bbb
       props: {
         xywh: '[0,0,800,95]',
         background: {
-          dark: '#000000',
+          dark: '#252525',
           light: '#ffffff',
         },
         index: 'a0',
@@ -3625,48 +3974,6 @@ bbb
                 },
               },
             },
-          },
-          children: [],
-        },
-      ],
-    };
-
-    const mdAdapter = new MarkdownAdapter(createJob(), provider);
-    const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
-      file: markdown,
-    });
-    expect(nanoidReplacement(rawBlockSnapshot)).toEqual(blockSnapshot);
-  });
-
-  test('html tag', async () => {
-    const markdown = `<aaa>\n`;
-
-    const blockSnapshot: BlockSnapshot = {
-      type: 'block',
-      id: 'matchesReplaceMap[0]',
-      flavour: 'affine:note',
-      props: {
-        xywh: '[0,0,800,95]',
-        background: DefaultTheme.noteBackgrounColor,
-        index: 'a0',
-        hidden: false,
-        displayMode: NoteDisplayMode.DocAndEdgeless,
-      },
-      children: [
-        {
-          type: 'block',
-          id: 'matchesReplaceMap[1]',
-          flavour: 'affine:paragraph',
-          props: {
-            text: {
-              '$blocksuite:internal:text$': true,
-              delta: [
-                {
-                  insert: '<aaa>',
-                },
-              ],
-            },
-            type: 'text',
           },
           children: [],
         },
@@ -4011,11 +4318,12 @@ hhh
     expect(nanoidReplacement(rawBlockSnapshot)).toEqual(blockSnapshot);
   });
 
-  test('without footnote middleware', async () => {
-    const markdown =
-      'aaa[^1][^2][^3]\n\n[^1]: {"type":"url","url":"https%3A%2F%2Fwww.example.com"}\n\n[^2]: {"type":"doc","docId":"deadbeef"}\n\n[^3]: {"type":"attachment","blobId":"abcdefg","fileName":"test.txt","fileType":"text/plain"}\n';
-
-    const blockSnapshot: BlockSnapshot = {
+  describe('footnote', () => {
+    const url = 'https://www.example.com';
+    const favicon = 'https://www.example.com/favicon.ico';
+    const title = 'Example Domain';
+    const description = 'Example Domain';
+    const blockSnapshot = {
       type: 'block',
       id: 'matchesReplaceMap[0]',
       flavour: 'affine:note',
@@ -4046,7 +4354,10 @@ hhh
                       label: '1',
                       reference: {
                         type: 'url',
-                        url: 'https://www.example.com',
+                        url,
+                        favicon,
+                        title,
+                        description,
                       },
                     },
                   },
@@ -4082,13 +4393,288 @@ hhh
           },
           children: [],
         },
+        {
+          type: 'block',
+          id: 'matchesReplaceMap[2]',
+          flavour: 'affine:paragraph',
+          props: {
+            type: 'h6',
+            text: {
+              '$blocksuite:internal:text$': true,
+              delta: [
+                {
+                  insert: 'Sources',
+                },
+              ],
+            },
+            collapsed: true,
+          },
+          children: [],
+        },
+        {
+          type: 'block',
+          id: 'matchesReplaceMap[3]',
+          flavour: 'affine:bookmark',
+          props: {
+            style: 'citation',
+            url,
+            title,
+            description,
+            icon: favicon,
+            footnoteIdentifier: '1',
+          },
+          children: [],
+        },
+        {
+          type: 'block',
+          id: 'matchesReplaceMap[4]',
+          flavour: 'affine:embed-linked-doc',
+          props: {
+            style: 'citation',
+            pageId: 'deadbeef',
+            footnoteIdentifier: '2',
+          },
+          children: [],
+        },
+        {
+          type: 'block',
+          id: 'matchesReplaceMap[5]',
+          flavour: 'affine:attachment',
+          props: {
+            name: 'test.txt',
+            sourceId: 'abcdefg',
+            footnoteIdentifier: '3',
+            style: 'citation',
+          },
+          children: [],
+        },
       ],
     };
 
-    const mdAdapter = new MarkdownAdapter(createJob(), provider);
-    const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
-      file: markdown,
+    test('with encoded url and favicon', async () => {
+      const encodedUrl = encodeURIComponent(url);
+      const encodedFavicon = encodeURIComponent(favicon);
+      const markdown = `aaa[^1][^2][^3]\n\n[^1]: {"type":"url","url":"${encodedUrl}","favicon":"${encodedFavicon}","title":"${title}","description":"${description}"}\n\n[^2]: {"type":"doc","docId":"deadbeef"}\n\n[^3]: {"type":"attachment","blobId":"abcdefg","fileName":"test.txt","fileType":"text/plain"}\n`;
+
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
+        file: markdown,
+      });
+      expect(nanoidReplacement(rawBlockSnapshot)).toEqual(blockSnapshot);
     });
-    expect(nanoidReplacement(rawBlockSnapshot)).toEqual(blockSnapshot);
+
+    test('with unencoded url and favicon', async () => {
+      const markdown = `aaa[^1][^2][^3]\n\n[^1]: {"type":"url","url":"${url}","favicon":"${favicon}","title":"${title}","description":"${description}"}\n\n[^2]: {"type":"doc","docId":"deadbeef"}\n\n[^3]: {"type":"attachment","blobId":"abcdefg","fileName":"test.txt","fileType":"text/plain"}\n`;
+
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
+        file: markdown,
+      });
+      expect(nanoidReplacement(rawBlockSnapshot)).toEqual(blockSnapshot);
+    });
+
+    test('should handle footnote reference with url prefix', async () => {
+      const blockSnapshot = {
+        type: 'block',
+        id: 'matchesReplaceMap[0]',
+        flavour: 'affine:note',
+        props: {
+          xywh: '[0,0,800,95]',
+          background: DefaultTheme.noteBackgrounColor,
+          index: 'a0',
+          hidden: false,
+          displayMode: NoteDisplayMode.DocAndEdgeless,
+        },
+        children: [
+          {
+            type: 'block',
+            id: 'matchesReplaceMap[1]',
+            flavour: 'affine:paragraph',
+            props: {
+              type: 'text',
+              text: {
+                '$blocksuite:internal:text$': true,
+                delta: [
+                  {
+                    insert: 'https://example.com',
+                    attributes: {
+                      link: 'https://example.com',
+                    },
+                  },
+                  {
+                    insert: ' ',
+                  },
+                  {
+                    insert: ' ',
+                    attributes: {
+                      footnote: {
+                        label: '1',
+                        reference: {
+                          type: 'url',
+                          url,
+                          favicon,
+                          title,
+                          description,
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+            children: [],
+          },
+          {
+            type: 'block',
+            id: 'matchesReplaceMap[2]',
+            flavour: 'affine:paragraph',
+            props: {
+              type: 'h6',
+              text: {
+                '$blocksuite:internal:text$': true,
+                delta: [
+                  {
+                    insert: 'Sources',
+                  },
+                ],
+              },
+              collapsed: true,
+            },
+            children: [],
+          },
+          {
+            type: 'block',
+            id: 'matchesReplaceMap[3]',
+            flavour: 'affine:bookmark',
+            props: {
+              style: 'citation',
+              url,
+              title,
+              description,
+              icon: favicon,
+              footnoteIdentifier: '1',
+            },
+            children: [],
+          },
+        ],
+      };
+
+      const markdown = `https://example.com[^1]\n\n[^1]: {"type":"url","url":"${url}","favicon":"${favicon}","title":"${title}","description":"${description}"}\n`;
+
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
+        file: markdown,
+      });
+      expect(nanoidReplacement(rawBlockSnapshot)).toEqual(blockSnapshot);
+    });
+  });
+
+  test('should not wrap url with angle brackets if it is not a url', async () => {
+    const markdown = 'prompt: How many people will live in the world in 2040?';
+    const sliceSnapshot: SliceSnapshot = {
+      type: 'slice',
+      content: [
+        {
+          type: 'block',
+          id: 'matchesReplaceMap[0]',
+          flavour: 'affine:note',
+          props: {
+            xywh: '[0,0,800,95]',
+            background: DefaultTheme.noteBackgrounColor,
+            index: 'a0',
+            hidden: false,
+            displayMode: NoteDisplayMode.DocAndEdgeless,
+          },
+          children: [
+            {
+              type: 'block',
+              id: 'matchesReplaceMap[1]',
+              flavour: 'affine:paragraph',
+              props: {
+                type: 'text',
+                text: {
+                  '$blocksuite:internal:text$': true,
+                  delta: [
+                    {
+                      insert:
+                        'prompt: How many people will live in the world in 2040?',
+                    },
+                  ],
+                },
+              },
+              children: [],
+            },
+          ],
+        },
+      ],
+      workspaceId: '',
+      pageId: '',
+    };
+
+    const mdAdapter = new MarkdownAdapter(createJob(), provider);
+    const rawSliceSnapshot = await mdAdapter.toSliceSnapshot({
+      file: markdown,
+      workspaceId: '',
+      pageId: '',
+    });
+    expect(nanoidReplacement(rawSliceSnapshot!)).toEqual(sliceSnapshot);
+  });
+
+  describe('callout', () => {
+    const calloutBlockSnapshot: BlockSnapshot = {
+      type: 'block',
+      id: 'matchesReplaceMap[0]',
+      flavour: 'affine:note',
+      props: {
+        xywh: '[0,0,800,95]',
+        background: DefaultTheme.noteBackgrounColor,
+        index: 'a0',
+        hidden: false,
+        displayMode: NoteDisplayMode.DocAndEdgeless,
+      },
+      children: [
+        {
+          type: 'block',
+          id: 'matchesReplaceMap[1]',
+          flavour: 'affine:callout',
+          props: {
+            emoji: '💬',
+          },
+          children: [
+            {
+              type: 'block',
+              id: 'matchesReplaceMap[2]',
+              flavour: 'affine:paragraph',
+              props: {
+                type: 'text',
+                text: {
+                  '$blocksuite:internal:text$': true,
+                  delta: [{ insert: 'This is a callout' }],
+                },
+              },
+              children: [],
+            },
+          ],
+        },
+      ],
+    };
+
+    test('callout start with escape character', async () => {
+      const markdown = '> \\[!💬]\n> This is a callout';
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
+        file: markdown,
+      });
+      expect(nanoidReplacement(rawBlockSnapshot)).toEqual(calloutBlockSnapshot);
+    });
+
+    test('callout start without escape character', async () => {
+      const markdown = '> [!💬]\n> This is a callout';
+      const mdAdapter = new MarkdownAdapter(createJob(), provider);
+      const rawBlockSnapshot = await mdAdapter.toBlockSnapshot({
+        file: markdown,
+      });
+      expect(nanoidReplacement(rawBlockSnapshot)).toEqual(calloutBlockSnapshot);
+    });
   });
 });

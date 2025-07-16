@@ -10,7 +10,6 @@ import { OAuth } from '@affine/core/components/affine/auth/oauth';
 import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hooks';
 import { AuthService, ServerService } from '@affine/core/modules/cloud';
 import type { AuthSessionStatus } from '@affine/core/modules/cloud/entities/session';
-import { FeatureFlagService } from '@affine/core/modules/feature-flag';
 import { ServerDeploymentType } from '@affine/graphql';
 import { Trans, useI18n } from '@affine/i18n';
 import {
@@ -61,10 +60,6 @@ export const SignInStep = ({
     )
   );
   const authService = useService(AuthService);
-  const featureFlagService = useService(FeatureFlagService);
-  const enableMultipleCloudServers = useLiveData(
-    featureFlagService.flags.enable_multiple_cloud_servers.$
-  );
   const [isMutating, setIsMutating] = useState(false);
 
   const [email, setEmail] = useState('');
@@ -93,46 +88,22 @@ export const SignInStep = ({
     setIsMutating(true);
 
     try {
-      const { hasPassword, registered, magicLink } =
-        await authService.checkUserByEmail(email);
+      const { hasPassword } = await authService.checkUserByEmail(email);
 
-      if (registered) {
-        // provider password sign-in if user has by default
-        //  If with payment, onl support email sign in to avoid redirect to affine app
-        if (hasPassword) {
-          changeState(prev => ({
-            ...prev,
-            email,
-            step: 'signInWithPassword',
-            hasPassword: true,
-          }));
-        } else {
-          if (magicLink) {
-            changeState(prev => ({
-              ...prev,
-              email,
-              step: 'signInWithEmail',
-              hasPassword: false,
-            }));
-          } else {
-            notify.error({
-              title: 'Failed to send email. Please contact the administrator.',
-            });
-          }
-        }
+      if (hasPassword) {
+        changeState(prev => ({
+          ...prev,
+          email,
+          step: 'signInWithPassword',
+          hasPassword: true,
+        }));
       } else {
-        if (magicLink) {
-          changeState(prev => ({
-            ...prev,
-            email,
-            step: 'signInWithEmail',
-            hasPassword: false,
-          }));
-        } else {
-          notify.error({
-            title: 'Failed to send email. Please contact the administrator.',
-          });
-        }
+        changeState(prev => ({
+          ...prev,
+          email,
+          step: 'signInWithEmail',
+          hasPassword: false,
+        }));
       }
     } catch (err: any) {
       console.error(err);
@@ -205,7 +176,7 @@ export const SignInStep = ({
               <div className={style.skipDividerLine} />
             </div>
             <div className={style.skipSection}>
-              {BUILD_CONFIG.isElectron && enableMultipleCloudServers ? (
+              {BUILD_CONFIG.isNative ? (
                 <Button
                   variant="plain"
                   className={style.addSelfhostedButton}

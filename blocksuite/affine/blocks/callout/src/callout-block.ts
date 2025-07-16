@@ -12,6 +12,7 @@ import type { BlockComponent } from '@blocksuite/std';
 import { flip, offset } from '@floating-ui/dom';
 import { css, html } from 'lit';
 import { query } from 'lit/decorators.js';
+import { styleMap } from 'lit/directives/style-map.js';
 export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockModel> {
   static override styles = css`
     :host {
@@ -21,16 +22,21 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
 
     .affine-callout-block-container {
       display: flex;
-      padding: 12px 16px;
+      padding: 5px 10px;
       border-radius: 8px;
       background-color: ${unsafeCSSVarV2('block/callout/background/grey')};
     }
 
     .affine-callout-emoji-container {
-      margin-right: 12px;
-      margin-top: 10px;
+      margin-right: 10px;
+      margin-top: 14px;
       user-select: none;
       font-size: 1.2em;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .affine-callout-emoji:hover {
       cursor: pointer;
@@ -40,6 +46,7 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
     .affine-callout-children {
       flex: 1;
       min-width: 0;
+      padding-left: 10px;
     }
   `;
 
@@ -103,14 +110,18 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
   }
 
   override renderBlock() {
+    const emoji = this.model.props.emoji$.value;
     return html`
       <div class="affine-callout-block-container">
         <div
           @click=${this._toggleEmojiMenu}
           contenteditable="false"
           class="affine-callout-emoji-container"
+          style=${styleMap({
+            display: emoji.length === 0 ? 'none' : undefined,
+          })}
         >
-          <span class="affine-callout-emoji">${this.model.props.emoji$}</span>
+          <span class="affine-callout-emoji">${emoji}</span>
         </div>
         <div class="affine-callout-children">
           ${this.renderChildren(this.model)}

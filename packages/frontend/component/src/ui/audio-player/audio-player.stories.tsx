@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import bytes from 'bytes';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AudioPlayer, MiniAudioPlayer } from './audio-player';
 
@@ -12,6 +13,7 @@ const AudioWrapper = () => {
   const [seekTime, setSeekTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1.0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioUrlRef = useRef<string | null>(null);
 
@@ -81,7 +83,7 @@ const AudioWrapper = () => {
       e.preventDefault();
       const file = e.dataTransfer.files[0];
       if (file && file.type.startsWith('audio/')) {
-        handleFileChange(file);
+        handleFileChange(file).catch(console.error);
       }
     },
     [handleFileChange]
@@ -91,7 +93,7 @@ const AudioWrapper = () => {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        handleFileChange(file);
+        handleFileChange(file).catch(console.error);
       }
     },
     [handleFileChange]
@@ -150,6 +152,17 @@ const AudioWrapper = () => {
     },
     [playbackState]
   );
+
+  const handlePlaybackRateChange = useCallback((rate: number) => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = rate;
+      setPlaybackRate(rate);
+    }
+  }, []);
+
+  const description = useMemo(() => {
+    return audioFile ? <>{bytes(audioFile.size)}</> : null;
+  }, [audioFile]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -288,7 +301,7 @@ const AudioWrapper = () => {
           />
           <MiniAudioPlayer
             name={audioFile.name}
-            size={audioFile.size}
+            description={description}
             waveform={waveform}
             playbackState={playbackState}
             seekTime={seekTime}
@@ -298,10 +311,12 @@ const AudioWrapper = () => {
             onPause={handlePause}
             onStop={handleStop}
             onSeek={handleSeek}
+            playbackRate={playbackRate}
+            onPlaybackRateChange={handlePlaybackRateChange}
           />
           <AudioPlayer
             name={audioFile.name}
-            size={audioFile.size}
+            description={description}
             waveform={waveform}
             playbackState={playbackState}
             seekTime={seekTime}
@@ -311,6 +326,8 @@ const AudioWrapper = () => {
             onPause={handlePause}
             onStop={handleStop}
             onSeek={handleSeek}
+            playbackRate={playbackRate}
+            onPlaybackRateChange={handlePlaybackRateChange}
           />
         </>
       )}

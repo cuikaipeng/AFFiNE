@@ -43,6 +43,11 @@ export class MailSender {
     return createTransport(configToSMTPOptions(config));
   }
 
+  get configured() {
+    // NOTE: testing environment will use mock queue, so we need to return true
+    return this.smtp !== null || env.testing;
+  }
+
   @OnEvent('config.init')
   onConfigInit() {
     this.setup();
@@ -56,13 +61,7 @@ export class MailSender {
   }
 
   private setup() {
-    const { SMTP, enabled } = this.config.mailer;
-
-    if (!enabled) {
-      this.smtp = null;
-      return;
-    }
-
+    const { SMTP } = this.config.mailer;
     const opts = configToSMTPOptions(SMTP);
 
     if (SMTP.host) {
@@ -83,6 +82,7 @@ export class MailSender {
       });
     } else {
       this.logger.warn('Mailer SMTP transport is not configured.');
+      this.smtp = null;
     }
   }
 
@@ -108,7 +108,7 @@ export class MailSender {
       }
 
       metrics.mail.counter('accepted_total').add(1, { name });
-      this.logger.log(`Mail [${name}] sent successfully.`);
+      this.logger.debug(`Mail [${name}] sent successfully.`);
       if (this.usingTestAccount) {
         this.logger.debug(
           `  ⚙️ Mail preview url: ${getTestMessageUrl(result)}`

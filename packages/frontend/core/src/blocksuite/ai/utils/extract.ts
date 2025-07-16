@@ -1,4 +1,3 @@
-import type { ServiceProvider } from '@blocksuite/affine/global/di';
 import {
   DatabaseBlockModel,
   ImageBlockModel,
@@ -19,16 +18,15 @@ import {
   isInsideEdgelessEditor,
   matchModels,
 } from '@blocksuite/affine/shared/utils';
-import type { EditorHost } from '@blocksuite/affine/std';
+import { BlockStdScope, type EditorHost } from '@blocksuite/affine/std';
 import type { BlockModel, Store } from '@blocksuite/affine/store';
 import { Slice, toDraftModel } from '@blocksuite/affine/store';
 
-import type { ChatContextValue } from '../chat-panel/chat-context';
+import { getStoreManager } from '../../manager/store';
+import type { ChatContextValue } from '../components/ai-chat-content';
 import {
-  allToCanvas,
   getSelectedImagesAsBlobs,
   getSelectedTextContent,
-  getTextContentFromBlockModels,
   selectedToCanvas,
 } from './selection-utils';
 
@@ -98,75 +96,13 @@ async function extractPageSelected(
   }
 }
 
-export async function extractAllContent(
-  host: EditorHost
-): Promise<Partial<ChatContextValue> | null> {
-  const docModeService = host.std.get(DocModeProvider);
-  const mode = docModeService.getEditorMode() || 'page';
-  if (mode === 'edgeless') {
-    return await extractEdgelessAll(host);
-  } else {
-    return await extractPageAll(host);
-  }
-}
-
-export async function extractEdgelessAll(
-  host: EditorHost
-): Promise<Partial<ChatContextValue> | null> {
-  if (!isInsideEdgelessEditor(host)) return null;
-
-  const canvas = await allToCanvas(host);
-  if (!canvas) return null;
-
-  const blob: Blob | null = await new Promise(resolve =>
-    canvas.toBlob(resolve)
-  );
-  if (!blob) return null;
-
-  return {
-    images: [new File([blob], `${host.doc.id}.png`)],
-  };
-}
-
-export async function extractPageAll(
-  host: EditorHost
-): Promise<Partial<ChatContextValue> | null> {
-  const blockModels = getNoteBlockModels(host.doc);
-  const text = await getTextContentFromBlockModels(
-    host,
-    blockModels,
-    'plain-text'
-  );
-  const markdown = await getTextContentFromBlockModels(
-    host,
-    blockModels,
-    'markdown'
-  );
-  const blobs = await Promise.all(
-    blockModels.map(async s => {
-      if (s.flavour !== 'affine:image') return null;
-      const sourceId = (s as ImageBlockModel)?.props.sourceId;
-      if (!sourceId) return null;
-      const blob = await (sourceId ? host.doc.blobSync.get(sourceId) : null);
-      if (!blob) return null;
-      return new File([blob], sourceId);
-    }) ?? []
-  );
-  const images = blobs.filter((blob): blob is File => !!blob);
-
-  return {
-    quote: text,
-    markdown,
-    images,
-  };
-}
-
-export async function extractMarkdownFromDoc(
-  doc: Store,
-  provider: ServiceProvider
-): Promise<string> {
+export async function extractMarkdownFromDoc(doc: Store): Promise<string> {
+  const std = new BlockStdScope({
+    store: doc,
+    extensions: getStoreManager().config.init().value.get('store'),
+  });
   const transformer = await getTransformer(doc);
-  const adapter = new MarkdownAdapter(transformer, provider);
+  const adapter = new MarkdownAdapter(transformer, std.provider);
   const blockModels = getNoteBlockModels(doc);
   const textModels = blockModels.filter(
     model => !matchModels(model, [ImageBlockModel, DatabaseBlockModel])

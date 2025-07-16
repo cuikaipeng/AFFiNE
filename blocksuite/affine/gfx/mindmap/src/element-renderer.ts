@@ -1,9 +1,11 @@
 import {
-  ConnectorPathGenerator,
   type ElementRenderer,
   ElementRendererExtension,
 } from '@blocksuite/affine-block-surface';
-import { connector as renderConnector } from '@blocksuite/affine-gfx-connector';
+import {
+  connector as renderConnector,
+  ConnectorPathGenerator,
+} from '@blocksuite/affine-gfx-connector';
 import type {
   MindmapElementModel,
   MindmapNode,
@@ -32,7 +34,7 @@ export const mindmap: ElementRenderer<MindmapElementModel> = (
       const { connector, outdated } = result;
       const elementGetter = (id: string) =>
         model.surface.getElementById(id) ??
-        (model.surface.doc.getModelById(id) as GfxModel);
+        (model.surface.store.getModelById(id) as GfxModel);
 
       if (outdated) {
         ConnectorPathGenerator.updatePath(connector, null, elementGetter);

@@ -4,12 +4,12 @@ import {
   RewindFifteenSecondsIcon,
   VoiceIcon,
 } from '@blocksuite/icons/rc';
-import bytes from 'bytes';
 import { clamp } from 'lodash-es';
 import { type MouseEventHandler, type ReactNode, useCallback } from 'react';
 
-import { IconButton } from '../button';
+import { Button, IconButton } from '../button';
 import { AnimatedPlayIcon } from '../lottie';
+import { Menu, MenuItem } from '../menu';
 import * as styles from './audio-player.css';
 import { AudioWaveform } from './audio-waveform';
 
@@ -23,7 +23,7 @@ const formatTime = (seconds: number): string => {
 export interface AudioPlayerProps {
   // Audio metadata
   name: string;
-  size: number | ReactNode; // the size entry may be used for drawing error message
+  description?: ReactNode; // Display file size or error message
   waveform: number[] | null;
   // Playback state
   playbackState: 'idle' | 'playing' | 'paused' | 'stopped';
@@ -40,11 +40,18 @@ export interface AudioPlayerProps {
   onPause: MouseEventHandler;
   onStop: MouseEventHandler;
   onSeek: (newTime: number) => void;
+
+  // Playback rate
+  playbackRate: number;
+  onPlaybackRateChange: (rate: number) => void;
 }
+
+// Playback rate options
+const playbackRates = [0.5, 0.75, 1, 1.5, 1.75, 2, 3];
 
 export const AudioPlayer = ({
   name,
-  size,
+  description,
   playbackState,
   seekTime,
   duration,
@@ -55,6 +62,8 @@ export const AudioPlayer = ({
   onPause,
   onSeek,
   onClick,
+  playbackRate,
+  onPlaybackRateChange,
 }: AudioPlayerProps) => {
   // Handle progress bar click
   const handleProgressClick = useCallback(
@@ -80,6 +89,13 @@ export const AudioPlayer = ({
     [loading, playbackState, onPause, onPlay]
   );
 
+  const handlePlaybackRateChange = useCallback(
+    (rate: number) => {
+      onPlaybackRateChange(rate);
+    },
+    [onPlaybackRateChange]
+  );
+
   // Calculate progress percentage
   const progressPercentage = duration > 0 ? seekTime / duration : 0;
   return (
@@ -91,12 +107,30 @@ export const AudioPlayer = ({
             <div className={styles.nameLabel}>{name}</div>
           </div>
           <div className={styles.upperRow}>
-            <div className={styles.sizeInfo}>
-              {typeof size === 'number' ? bytes(size) : size}
-            </div>
+            <div className={styles.description}>{description}</div>
           </div>
         </div>
         <div className={styles.upperRight}>
+          <Menu
+            rootOptions={{ modal: false }}
+            items={
+              <>
+                {playbackRates.map(rate => (
+                  <MenuItem
+                    key={rate}
+                    selected={rate === playbackRate}
+                    onClick={() => handlePlaybackRateChange(rate)}
+                  >
+                    {rate}x
+                  </MenuItem>
+                ))}
+              </>
+            }
+          >
+            <Button variant="plain" className={styles.playbackRateDisplay}>
+              {playbackRate}x
+            </Button>
+          </Menu>
           {notesEntry}
           <AnimatedPlayIcon
             onClick={handlePlayToggle}
@@ -111,7 +145,7 @@ export const AudioPlayer = ({
           waveform={waveform || []}
           progress={progressPercentage}
           onManualSeek={handleProgressClick}
-          loading={loading}
+          loading={!waveform || waveform.length === 0}
         />
         <div className={styles.timeDisplay}>{formatTime(duration)}</div>
       </div>

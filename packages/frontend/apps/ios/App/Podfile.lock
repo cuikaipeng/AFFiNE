@@ -1,14 +1,16 @@
 PODS:
   - Capacitor (7.2.0):
     - CapacitorCordova
-  - CapacitorApp (7.0.0):
+  - CapacitorApp (7.0.1):
     - Capacitor
-  - CapacitorBrowser (7.0.0):
+  - CapacitorBrowser (7.0.1):
     - Capacitor
   - CapacitorCordova (7.2.0)
-  - CapacitorHaptics (7.0.0):
+  - CapacitorHaptics (7.0.1):
     - Capacitor
-  - CapacitorKeyboard (7.0.0):
+  - CapacitorKeyboard (7.0.1):
+    - Capacitor
+  - CapacitorPluginAppTrackingTransparency (2.0.5):
     - Capacitor
   - CryptoSwift (1.8.3)
 
@@ -19,6 +21,7 @@ DEPENDENCIES:
   - "CapacitorCordova (from `../../../../../node_modules/@capacitor/ios`)"
   - "CapacitorHaptics (from `../../../../../node_modules/@capacitor/haptics`)"
   - "CapacitorKeyboard (from `../../../../../node_modules/@capacitor/keyboard`)"
+  - CapacitorPluginAppTrackingTransparency (from `../../../../../node_modules/capacitor-plugin-app-tracking-transparency`)
   - CryptoSwift (~> 1.8.3)
 
 SPEC REPOS:
@@ -38,16 +41,19 @@ EXTERNAL SOURCES:
     :path: "../../../../../node_modules/@capacitor/haptics"
   CapacitorKeyboard:
     :path: "../../../../../node_modules/@capacitor/keyboard"
+  CapacitorPluginAppTrackingTransparency:
+    :path: "../../../../../node_modules/capacitor-plugin-app-tracking-transparency"
 
 SPEC CHECKSUMS:
-  Capacitor: 106e7a4205f4618d582b886a975657c61179138d
-  CapacitorApp: 45cb7cbef4aa380b9236fd6980033eb5cde6fcd2
-  CapacitorBrowser: 352a66541b15ceadae1d703802b11979023705e3
+  Capacitor: 03bc7cbdde6a629a8b910a9d7d78c3cc7ed09ea7
+  CapacitorApp: febecbb9582cb353aed037e18ec765141f880fe9
+  CapacitorBrowser: 6299776d496e968505464884d565992faa20444a
   CapacitorCordova: 5967b9ba03915ef1d585469d6e31f31dc49be96f
-  CapacitorHaptics: 1fba3e460e7614349c6d5f868b1fccdc5c87b66d
-  CapacitorKeyboard: 2c26c6fccde35023c579fc37d4cae6326d5e6343
+  CapacitorHaptics: 1f1e17041f435d8ead9ff2a34edd592c6aa6a8d6
+  CapacitorKeyboard: 09fd91dcde4f8a37313e7f11bde553ad1ed52036
+  CapacitorPluginAppTrackingTransparency: 92ae9c1cfb5cf477753db9269689332a686f675a
   CryptoSwift: 967f37cea5a3294d9cce358f78861652155be483
 
-PODFILE CHECKSUM: bd61c17ff51f31ae55ec8dc579da83fda7bb51cb
+PODFILE CHECKSUM: 2c1e4be82121f2d9724ecf7e31dd14e165aeb082
 
 COCOAPODS: 1.16.2

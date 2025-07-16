@@ -9,8 +9,8 @@ import {
 } from '@blocksuite/std';
 import {
   type InlineEditor,
-  ZERO_WIDTH_NON_JOINER,
-  ZERO_WIDTH_SPACE,
+  ZERO_WIDTH_FOR_EMBED_NODE,
+  ZERO_WIDTH_FOR_EMPTY_LINE,
 } from '@blocksuite/std/inline';
 import type { DeltaInsert } from '@blocksuite/store';
 import { signal } from '@preact/signals-core';
@@ -139,8 +139,7 @@ export class AffineLatexNode extends SignalWatcher(
             } else {
               try {
                 katex.render(latex, latexContainer, {
-                  displayMode: true,
-                  output: 'mathml',
+                  displayMode: false,
                 });
               } catch {
                 latexContainer.replaceChildren();
@@ -178,7 +177,7 @@ export class AffineLatexNode extends SignalWatcher(
   override render() {
     return html`<span class="affine-latex" data-selected=${this.selected}
       ><div class="latex-container"></div>
-      <v-text .str=${ZERO_WIDTH_NON_JOINER}></v-text
+      <v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
     ></span>`;
   }
 
@@ -189,7 +188,9 @@ export class AffineLatexNode extends SignalWatcher(
     this._editorAbortController?.abort();
     this._editorAbortController = new AbortController();
 
-    const portal = createLitPortal({
+    blockComponent.selection.setGroup('note', []);
+
+    const { portal } = createLitPortal({
       template: html`<latex-editor-menu
         .std=${this.std}
         .latexSignal=${this.latexEditorSignal}
@@ -244,7 +245,7 @@ export class AffineLatexNode extends SignalWatcher(
 
   @property({ attribute: false })
   accessor delta: DeltaInsert<AffineTextAttributes> = {
-    insert: ZERO_WIDTH_SPACE,
+    insert: ZERO_WIDTH_FOR_EMPTY_LINE,
   };
 
   @property({ attribute: false })

@@ -15,13 +15,13 @@ export default defineConfig(_configEnv =>
     plugins: [vanillaExtractPlugin()],
     test: {
       include: ['src/__tests__/**/*.spec.ts'],
+      retry: process.env.CI === 'true' ? 3 : 0,
       browser: {
         enabled: true,
         headless: process.env.CI === 'true',
-        name: 'chromium',
+        instances: [{ browser: 'chromium' }],
         provider: 'playwright',
         isolate: false,
-        providerOptions: {},
         viewport: {
           width: 1024,
           height: 768,

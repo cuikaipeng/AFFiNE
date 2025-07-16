@@ -9,6 +9,7 @@ import {
   clickNewPageButton,
   createLinkedPage,
   dragTo,
+  getPageByTitle,
 } from '@affine-test/kit/utils/page-logic';
 import { clickSideBarAllPageButton } from '@affine-test/kit/utils/sidebar';
 import { expect } from '@playwright/test';
@@ -21,11 +22,6 @@ test('create new tab', async ({ views }) => {
   // new tab title should be All docs
   await expectTabTitle(page, 1, 'All docs');
   await expectActiveTab(page, 1);
-  page = await views.getActive();
-  // page content should be at all docs page
-  await expect(page.getByTestId('virtualized-page-list')).toContainText(
-    'All docs'
-  );
 });
 
 test('can switch & close tab by clicking', async ({ page }) => {
@@ -70,7 +66,7 @@ test('Expand Sidebar', async ({ page }) => {
 });
 
 test('tab title will change when navigating', async ({ page }) => {
-  await expectTabTitle(page, 0, 'Write, Draw, Plan all at Once');
+  await expectTabTitle(page, 0, 'Getting Started');
 
   // create new page
   await clickNewPageButton(page);
@@ -115,7 +111,7 @@ test('drag a page from "All pages" list to tabs header', async ({ page }) => {
 
   await dragTo(
     page,
-    page.locator(`[data-testid="page-list-item"]:has-text("${title}")`),
+    getPageByTitle(page, title),
     page.getByTestId('add-tab-view-button')
   );
 

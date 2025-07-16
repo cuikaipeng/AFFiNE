@@ -46,6 +46,7 @@ export const ContextFileSchema = z.object({
   id: z.string(),
   chunkSize: z.number(),
   name: z.string(),
+  mimeType: z.string().optional(),
   status: ContextEmbedStatusSchema,
   error: z.string().nullable(),
   blobId: z.string(),
@@ -100,8 +101,39 @@ export type ChunkSimilarity = {
 
 export type FileChunkSimilarity = ChunkSimilarity & {
   fileId: string;
+  blobId: string;
+  name: string;
+  mimeType: string;
 };
 
 export type DocChunkSimilarity = ChunkSimilarity & {
   docId: string;
+};
+
+export const CopilotWorkspaceFileSchema = z.object({
+  fileName: z.string(),
+  blobId: z.string(),
+  mimeType: z.string(),
+  size: z.number(),
+});
+
+export type CopilotWorkspaceFileMetadata = z.infer<
+  typeof CopilotWorkspaceFileSchema
+>;
+export type CopilotWorkspaceFile = CopilotWorkspaceFileMetadata & {
+  workspaceId: string;
+  fileId: string;
+  createdAt: Date;
+};
+
+export type IgnoredDoc = {
+  docId: string;
+  createdAt: Date;
+  // metadata
+  docCreatedAt: Date | undefined;
+  docUpdatedAt: Date | undefined;
+  title: string | undefined;
+  createdBy: string | undefined;
+  createdByAvatar: string | undefined;
+  updatedBy: string | undefined;
 };

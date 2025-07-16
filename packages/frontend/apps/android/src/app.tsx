@@ -1,3 +1,4 @@
+import { getStoreManager } from '@affine/core/blocksuite/manager/store';
 import { AffineContext } from '@affine/core/components/context';
 import { AppFallback } from '@affine/core/mobile/components/app-fallback';
 import { configureMobileModules } from '@affine/core/mobile/modules';
@@ -6,9 +7,13 @@ import { router } from '@affine/core/mobile/router';
 import { configureCommonModules } from '@affine/core/modules';
 import { AIButtonProvider } from '@affine/core/modules/ai-button';
 import {
+  AuthProvider,
   AuthService,
   DefaultServerService,
+  ServerScope,
+  ServerService,
   ServersService,
+  ValidatorProvider,
 } from '@affine/core/modules/cloud';
 import { DocsService } from '@affine/core/modules/doc';
 import { GlobalContextService } from '@affine/core/modules/global-context';
@@ -26,7 +31,6 @@ import { configureBrowserWorkspaceFlavours } from '@affine/core/modules/workspac
 import { getWorkerUrl } from '@affine/env/worker';
 import { I18n } from '@affine/i18n';
 import { StoreManagerClient } from '@affine/nbstore/worker/client';
-import { getMarkdownAdapterExtensions } from '@blocksuite/affine/adapters';
 import { Container } from '@blocksuite/affine/global/di';
 import {
   docLinkBaseURLMiddleware,
@@ -36,20 +40,22 @@ import {
 import { App as CapacitorApp } from '@capacitor/app';
 import { Keyboard } from '@capacitor/keyboard';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { EdgeToEdge } from '@capawesome/capacitor-android-edge-to-edge-support';
 import { InAppBrowser } from '@capgo/inappbrowser';
 import { Framework, FrameworkRoot, getCurrentStore } from '@toeverything/infra';
 import { OpClient } from '@toeverything/infra/op';
+import { AsyncCall } from 'async-call-rpc';
 import { useTheme } from 'next-themes';
 import { Suspense, useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 
 import { AffineTheme } from './plugins/affine-theme';
 import { AIButton } from './plugins/ai-button';
+import { Auth } from './plugins/auth';
+import { HashCash } from './plugins/hashcash';
+import { NbStoreNativeDBApis } from './plugins/nbstore';
+import { writeEndpointToken } from './proxy';
 
-const storeManagerClient = new StoreManagerClient(
-  new OpClient(new Worker(getWorkerUrl('nbstore')))
-);
+const storeManagerClient = createStoreManagerClient();
 window.addEventListener('beforeunload', () => {
   storeManagerClient.dispose();
 });
@@ -110,10 +116,14 @@ framework.impl(VirtualKeyboardProvider, {
 
     Promise.all([
       Keyboard.addListener('keyboardWillShow', info => {
-        callback({
-          visible: true,
-          height: info.keyboardHeight,
-        });
+        (async () => {
+          const navBarHeight = (await AffineTheme.getSystemNavBarHeight())
+            .height;
+          callback({
+            visible: true,
+            height: info.keyboardHeight - navBarHeight,
+          });
+        })().catch(console.error);
       }),
       Keyboard.addListener('keyboardWillHide', () => {
         callback({
@@ -137,6 +147,13 @@ framework.impl(VirtualKeyboardProvider, {
   },
 });
 
+framework.impl(ValidatorProvider, {
+  async validate(_challenge, resource) {
+    const res = await HashCash.hash({ challenge: resource });
+    return res.value;
+  },
+});
+
 framework.impl(AIButtonProvider, {
   presentAIButton: () => {
     return AIButton.present();
@@ -144,6 +161,44 @@ framework.impl(AIButtonProvider, {
   dismissAIButton: () => {
     return AIButton.dismiss();
   },
+});
+
+framework.scope(ServerScope).override(AuthProvider, resolver => {
+  const serverService = resolver.get(ServerService);
+  const endpoint = serverService.server.baseUrl;
+  return {
+    async signInMagicLink(email, linkToken, clientNonce) {
+      const { token } = await Auth.signInMagicLink({
+        endpoint,
+        email,
+        token: linkToken,
+        clientNonce,
+      });
+      await writeEndpointToken(endpoint, token);
+    },
+    async signInOauth(code, state, _provider, clientNonce) {
+      const { token } = await Auth.signInOauth({
+        endpoint,
+        code,
+        state,
+        clientNonce,
+      });
+      await writeEndpointToken(endpoint, token);
+      return {};
+    },
+    async signInPassword(credential) {
+      const { token } = await Auth.signInPassword({
+        endpoint,
+        ...credential,
+      });
+      await writeEndpointToken(endpoint, token);
+    },
+    async signOut() {
+      await Auth.signOut({
+        endpoint,
+      });
+    },
+  };
 });
 
 // ------ some apis for native ------
@@ -199,9 +254,12 @@ framework.impl(AIButtonProvider, {
     const snapshot = transformer.docToSnapshot(blockSuiteDoc);
 
     const container = new Container();
-    getMarkdownAdapterExtensions().forEach(ext => {
-      ext.setup(container);
-    });
+    getStoreManager()
+      .config.init()
+      .value.get('store')
+      .forEach(ext => {
+        ext.setup(container);
+      });
     const provider = container.provider();
 
     const adapter = new MarkdownAdapter(transformer, provider);
@@ -274,9 +332,6 @@ const ThemeProvider = () => {
             ? Style.Light
             : Style.Default,
     }).catch(console.error);
-    EdgeToEdge.setBackgroundColor({
-      color: resolvedTheme === 'dark' ? '#000000' : '#F5F5F5',
-    }).catch(console.error);
     AffineTheme.onThemeChanged({
       darkMode: resolvedTheme === 'dark',
     }).catch(console.error);
@@ -301,4 +356,36 @@ export function App() {
       </FrameworkRoot>
     </Suspense>
   );
+}
+
+function createStoreManagerClient() {
+  const worker = new Worker(getWorkerUrl('nbstore'));
+  const { port1: nativeDBApiChannelServer, port2: nativeDBApiChannelClient } =
+    new MessageChannel();
+  AsyncCall<typeof NbStoreNativeDBApis>(NbStoreNativeDBApis, {
+    channel: {
+      on(listener) {
+        const f = (e: MessageEvent<any>) => {
+          listener(e.data);
+        };
+        nativeDBApiChannelServer.addEventListener('message', f);
+        return () => {
+          nativeDBApiChannelServer.removeEventListener('message', f);
+        };
+      },
+      send(data) {
+        nativeDBApiChannelServer.postMessage(data);
+      },
+    },
+    log: false,
+  });
+  nativeDBApiChannelServer.start();
+  worker.postMessage(
+    {
+      type: 'native-db-api-channel',
+      port: nativeDBApiChannelClient,
+    },
+    [nativeDBApiChannelClient]
+  );
+  return new StoreManagerClient(new OpClient(worker));
 }

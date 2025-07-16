@@ -1,5 +1,5 @@
-import { ZipTransformer } from '@blocksuite/affine/blocks/root';
 import type { DocMode } from '@blocksuite/affine/model';
+import { ZipTransformer } from '@blocksuite/affine/widgets/linked-doc';
 import { Service } from '@toeverything/infra';
 
 import { DocsService } from '../../doc';
@@ -54,7 +54,7 @@ export class ImportTemplateService extends Service {
       flavour,
       async (docCollection, _, docStorage) => {
         docCollection.meta.initialize();
-        docCollection.meta.setName(workspaceName);
+        docCollection.doc.getMap('meta').set('name', workspaceName);
         const doc = docCollection.createDoc();
         docId = doc.id;
         await docStorage.pushDocUpdate({

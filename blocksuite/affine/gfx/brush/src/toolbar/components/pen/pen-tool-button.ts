@@ -10,7 +10,9 @@ import { css, html, LitElement, nothing } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { when } from 'lit/directives/when.js';
 
-import { penIconMap } from './icons';
+import { BrushTool } from '../../../brush-tool';
+import { HighlighterTool } from '../../../highlighter-tool';
+import { penIconMap, penInfoMap } from './consts';
 import type { Pen } from './types';
 
 export class EdgelessPenToolButton extends EdgelessToolbarToolMixin(
@@ -71,6 +73,20 @@ export class EdgelessPenToolButton extends EdgelessToolbarToolMixin(
     return this.colors$.value[pen];
   });
 
+  private readonly lineWidths$ = computed(() => {
+    const brush = this.settings.lastProps$.value.brush.lineWidth;
+    const highlighter = this.settings.lastProps$.value.highlighter.lineWidth;
+    return {
+      brush,
+      highlighter,
+    };
+  });
+
+  private readonly lineWidth$ = computed(() => {
+    const pen = this.pen$.value;
+    return this.lineWidths$.value[pen];
+  });
+
   private readonly penIconMap$ = computed(() => {
     const theme = this.themeProvider.app$.value;
     return penIconMap[theme];
@@ -81,35 +97,67 @@ export class EdgelessPenToolButton extends EdgelessToolbarToolMixin(
     return this.penIconMap$.value[pen];
   });
 
+  private readonly penInfo$ = computed(() => {
+    const type = this.pen$.value;
+    return {
+      ...penInfoMap[type],
+      type: this.pen$.value,
+      icon: this.penIcon$.value,
+      color: this.color$.value,
+      lineWidth: this.lineWidth$.value,
+    };
+  });
+
   private readonly pen$ = signal<Pen>('brush');
 
   override enableActiveBackground = true;
 
-  override type: Pen[] = ['brush', 'highlighter'];
+  override type = [BrushTool, HighlighterTool];
 
   override firstUpdated() {
     this.disposables.add(
-      this.gfx.tool.currentToolName$.subscribe(tool => {
-        if (this.type.map(String).includes(tool)) return;
-        this.tryDisposePopper();
+      this.gfx.tool.currentToolName$.subscribe(name => {
+        const tool = this.type.find(t => t.toolName === name);
+        if (!tool) {
+          this.tryDisposePopper();
+          return;
+        }
+
+        if (tool.toolName !== this.pen$.peek()) {
+          this.pen$.value = tool.toolName as Pen;
+        }
+
+        if (this.active) return;
+
+        this._togglePenMenu();
       })
     );
   }
 
   private _togglePenMenu() {
     if (this.tryDisposePopper()) return;
-    !this.active && this.setEdgelessTool(this.pen$.peek());
+    const setPenByType = (pen: Pen) => {
+      if (pen === 'brush') {
+        this.setEdgelessTool(BrushTool);
+      } else {
+        this.setEdgelessTool(HighlighterTool);
+      }
+    };
+    if (!this.active) {
+      const pen = this.pen$.peek();
+      setPenByType(pen);
+    }
     const menu = this.createPopper('edgeless-pen-menu', this);
     Object.assign(menu.element, {
-      color$: this.color$,
       colors$: this.colors$,
-      pen$: this.pen$,
       penIconMap$: this.penIconMap$,
+      pen$: this.pen$,
+      penInfo$: this.penInfo$,
       edgeless: this.edgeless,
       onChange: (props: Record<string, unknown>) => {
         const pen = this.pen$.peek();
         this.edgeless.std.get(EditPropsStore).recordLastProps(pen, props);
-        this.setEdgelessTool(pen);
+        setPenByType(pen);
       },
     });
   }
@@ -117,20 +165,22 @@ export class EdgelessPenToolButton extends EdgelessToolbarToolMixin(
   override render() {
     const {
       active,
-      penIcon$: { value: icon },
-      color$: { value: color },
+      penInfo$: {
+        value: { type, color, icon, tip, shortcut },
+      },
     } = this;
 
     return html`
       <edgeless-toolbar-button
         class="edgeless-pen-button"
+        data-drawing-tool="${type}"
         .tooltip=${when(
           this.popper,
           () => nothing,
           () =>
             html`<affine-tooltip-content-with-shortcut
-              data-tip="${'Pen'}"
-              data-shortcut="${'P'}"
+              data-tip="${tip}"
+              data-shortcut="${shortcut}"
             ></affine-tooltip-content-with-shortcut>`
         )}
         .tooltipOffset=${4}

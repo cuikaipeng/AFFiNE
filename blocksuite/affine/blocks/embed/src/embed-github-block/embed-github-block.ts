@@ -1,10 +1,11 @@
-import { OpenIcon } from '@blocksuite/affine-components/icons';
+import { LoadingIcon, OpenIcon } from '@blocksuite/affine-components/icons';
 import type {
   EmbedGithubModel,
   EmbedGithubStyles,
 } from '@blocksuite/affine-model';
+import { ImageProxyService } from '@blocksuite/affine-shared/adapters';
 import { ThemeProvider } from '@blocksuite/affine-shared/services';
-import { BlockSelection } from '@blocksuite/std';
+import { BlockSelection, isGfxBlockComponent } from '@blocksuite/std';
 import { html, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
@@ -82,12 +83,12 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
       !this.model.props.repo ||
       !this.model.props.githubId
     ) {
-      this.doc.withoutTransact(() => {
+      this.store.withoutTransact(() => {
         const url = this.model.props.url;
         const urlMatch = url.match(githubUrlRegex);
         if (urlMatch) {
           const [, owner, repo, githubType, githubId] = urlMatch;
-          this.doc.updateBlock(this.model, {
+          this.store.updateBlock(this.model, {
             owner,
             repo,
             githubType: githubType === 'issue' ? 'issue' : 'pr',
@@ -97,7 +98,7 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
       });
     }
 
-    this.doc.withoutTransact(() => {
+    this.store.withoutTransact(() => {
       if (!this.model.props.description && !this.model.props.title) {
         this.refreshData();
       } else {
@@ -131,8 +132,9 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
 
     const loading = this.loading;
     const theme = this.std.get(ThemeProvider).theme;
-    const { LoadingIcon, EmbedCardBannerIcon } = getEmbedCardIcons(theme);
-    const titleIcon = loading ? LoadingIcon : GithubIcon;
+    const imageProxyService = this.store.get(ImageProxyService);
+    const { EmbedCardBannerIcon } = getEmbedCardIcons(theme);
+    const titleIcon = loading ? LoadingIcon() : GithubIcon;
     const statusIcon = status
       ? getGithubStatusIcon(githubType, status, statusReason)
       : nothing;
@@ -141,9 +143,7 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
     const descriptionText = loading ? '' : description;
     const bannerImage =
       !loading && image
-        ? html`<object type="image/webp" data=${image} draggable="false">
-            ${EmbedCardBannerIcon}
-          </object>`
+        ? html`<img src=${imageProxyService.buildUrl(image)} alt="banner" />`
         : EmbedCardBannerIcon;
 
     let dateText = '';
@@ -166,16 +166,16 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
             'affine-embed-github-block': true,
             loading,
             [style]: true,
+            edgeless: isGfxBlockComponent(this),
             selected: this.selected$.value,
           })}
           style=${styleMap({
-            transform: `scale(${this._scale})`,
+            // transform: `scale(${this._scale})`,
             transformOrigin: '0 0 ',
           })}
           @click=${this._handleClick}
           @dblclick=${this._handleDoubleClick}
         >
-          <div class="affine-embed-github-banner">${bannerImage}</div>
           <div class="affine-embed-github-content">
             <div class="affine-embed-github-content-title">
               <div class="affine-embed-github-content-title-icons">
@@ -260,6 +260,7 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
               </div>
             </div>
           </div>
+          <div class="affine-embed-github-banner">${bannerImage}</div>
         </div>
       `
     );

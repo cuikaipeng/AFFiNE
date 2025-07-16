@@ -1,27 +1,24 @@
-import { loginUser } from '@affine-test/kit/utils/cloud';
 import { expect } from '@playwright/test';
 
 import { test } from '../base/base-test';
 
 test.describe('AIInsertion/SaveAsBlock', () => {
-  test.beforeEach(async ({ page, utils }) => {
-    const user = await utils.testUtils.getUser();
-    await loginUser(page, user);
+  test.beforeEach(async ({ loggedInPage: page, utils }) => {
     await utils.testUtils.setupTestEnvironment(page);
     await utils.chatPanel.openChatPanel(page);
   });
 
   test('should save content as a chat block in page mode', async ({
-    page,
+    loggedInPage: page,
     utils,
   }) => {
     await utils.chatPanel.openChatPanel(page);
-    await utils.chatPanel.makeChat(page, 'Hello');
+    await utils.chatPanel.makeChat(page, 'Hello. Answer in 50 words.');
 
     await utils.chatPanel.waitForHistory(page, [
       {
         role: 'user',
-        content: 'Hello',
+        content: 'Hello. Answer in 50 words.',
       },
       {
         role: 'assistant',
@@ -42,18 +39,18 @@ test.describe('AIInsertion/SaveAsBlock', () => {
   });
 
   test('should save content as a chat block in edgeless mode', async ({
-    page,
+    loggedInPage: page,
     utils,
   }) => {
     await utils.editor.switchToEdgelessMode(page);
 
     await utils.chatPanel.openChatPanel(page);
-    await utils.chatPanel.makeChat(page, 'Hello');
+    await utils.chatPanel.makeChat(page, 'Hello. Answer in 50 words.');
 
     await utils.chatPanel.waitForHistory(page, [
       {
         role: 'user',
-        content: 'Hello',
+        content: 'Hello. Answer in 50 words.',
       },
       {
         role: 'assistant',

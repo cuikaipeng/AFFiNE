@@ -60,8 +60,9 @@ export const spacer = style({
   flex: 1,
 });
 
-export const sizeInfo = style({
+export const description = style({
   display: 'flex',
+  gap: '8px',
   alignItems: 'center',
   fontSize: cssVar('fontXs'),
   color: cssVarV2('text/secondary'),
@@ -147,6 +148,13 @@ export const timeDisplay = style({
   ':last-of-type': {
     textAlign: 'right',
   },
+});
+
+export const playbackRateDisplay = style({
+  fontSize: cssVar('fontXs'),
+  fontWeight: 500,
+  color: cssVarV2('text/secondary'),
+  cursor: 'pointer',
 });
 
 export const miniRoot = style({
